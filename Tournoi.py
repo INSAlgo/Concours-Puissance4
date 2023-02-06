@@ -1,6 +1,7 @@
-import subprocess
 import os
 from itertools import combinations
+
+from puissance4 import game, AI
 
 
 def explore(dirname: str) -> list[dict[str, str]]:
@@ -23,16 +24,17 @@ def print_scores(scores: dict[str, int]) -> None:
 def main():
     files = explore("ai")
     paths = [file["path"] for file in files]
+    players = [AI(i, name) for i, name in enumerate(paths)]
     scores = dict()
     for file in files:
         scores[file["filename"]] = 0
 
-    for p1, p2 in combinations(paths, 2):
-        result = subprocess.check_output(["./puissance4.py", p1, p2, "-s"]).decode('ascii')
-        scores[result.rstrip()] += 1
+    for p1, p2 in combinations(players, 2):
+        result = game(p1, p2, False)
+        scores[result] += 1
 
-        result = subprocess.check_output(["./puissance4.py", p2, p1, "-s"]).decode('ascii')
-        scores[result.rstrip()] += 1
+        result = game(p2, p1, False)
+        scores[result] += 1
 
     print_scores(scores)
 
