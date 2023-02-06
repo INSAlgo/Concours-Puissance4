@@ -121,6 +121,11 @@ def checkWin(board, no):
                         return True
     return False
 
+def checkDraw(board):
+    for x in range(len(board)):
+        if not board[x][-1]:
+            return False
+    return True
 
 def display(board):
     width, height = len(board), len(board[0])
@@ -165,9 +170,11 @@ def sanithize(board, userInput, verbose=False):
         return
     return (x, y)
 
-def winMessage(winner):
-    print(f"{winner} wins")
-    return ""
+def endMessage(winner=None):
+    if winner is None:
+        print("Draw")
+    else:
+        print(f"{winner} wins")
 
 def game(p1: Player, p2: Player, width, height, verbose=False):
     p1.startGame(1, width, height)
@@ -175,8 +182,7 @@ def game(p1: Player, p2: Player, width, height, verbose=False):
     players = (p1, p2)
     turn = 0
     board = [[0 for _ in range(height)] for _ in range(width)]
-    winner = None
-    while winner is None:
+    while True:
         turn += 1
         player = players[(turn + 1) % 2]
         otherPlayer = players[turn % 2]
@@ -188,7 +194,8 @@ def game(p1: Player, p2: Player, width, height, verbose=False):
             userInput = sanithize(board, userInput, verbose)
             if not userInput and isinstance(player, AI):
                 if verbose:
-                    return winMessage(otherPlayer)
+                    endMessage(otherPlayer)
+                    return
                 elif isinstance(player, AI):
                     return player.progName
         x, y = userInput
@@ -198,9 +205,13 @@ def game(p1: Player, p2: Player, width, height, verbose=False):
         if checkWin(board, player.no):
             if verbose:
                 display(board)
-                return winMessage(player)
+                endMessage(player)
+                return
             elif isinstance(player, AI):
                 return player.progName
+        elif checkDraw(board):
+            if verbose: endMessage()
+            return
 
 def main():
     args = list(sys.argv[1:])
@@ -210,6 +221,14 @@ def main():
         args.remove("-s")
         if len(args) >= 2:
             verbose = False
+    if "-g" in args:
+        id = args.index("-g")
+        args.pop(id)
+        try:
+            width = int(args.pop(id))
+            height = int(args.pop(id))
+        except (IndexError, ValueError):
+            pass
     if len(args):
         p1 = AI(args.pop(0))
     else:
@@ -218,13 +237,8 @@ def main():
         p2 = AI(args.pop(0))
     else:
         p2 = User()
-    try:
-        width = int(args.pop(0))
-        height = int(args.pop(0))
-    except (IndexError, ValueError):
-        pass
     winnerFile = game(p1, p2, width, height, verbose)
-    if not verbose:
+    if not verbose and winnerFile is not None:
         print(winnerFile)
 
 

@@ -29,12 +29,14 @@ def print_scores(scores: dict[str, int]) -> None:
 def main():
     width, height = WIDTH, HEIGHT
     args = list(sys.argv[1:])
-    try:
-        args.pop(0)
-        width = int(args.pop(0))
-        height = int(args.pop(0))
-    except (IndexError, ValueError):
-        pass
+    if "-g" in args:
+        id = args.index("-g")
+        args.pop(id)
+        try:
+            width = int(args.pop(id))
+            height = int(args.pop(id))
+        except (IndexError, ValueError):
+            pass
     files = explore("ai")
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths]
