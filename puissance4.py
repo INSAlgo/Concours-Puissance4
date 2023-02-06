@@ -178,10 +178,10 @@ def fallHeight(board, x):
 
 
 def endMessage(winner=None):
-    if winner is None:
-        print("Draw")
-    else:
+    if winner:
         print(f"{winner} wins")
+    else:
+        print("Draw")
 
 def game(players, width, height, verbose=False):
     players = list(players)
@@ -246,9 +246,9 @@ def main():
         players.append(AI(args.pop(0)))
     while len(players) < nbPlayers:
         players.append(User())
-    winnerFile = game(players, width, height, verbose)
-    if not verbose and winnerFile is not None:
-        print(winnerFile)
+    winner = game(players, width, height, verbose)
+    if not verbose and winner:
+        print(winner)
 
 
 if __name__ == "__main__":
