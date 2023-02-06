@@ -4,6 +4,8 @@ import os
 import sys
 from itertools import combinations
 
+import subprocess
+
 from puissance4 import game, AI, WIDTH, HEIGHT
 
 
@@ -27,6 +29,8 @@ def print_scores(scores: dict[str, int]) -> None:
 
 
 def main():
+    subprocess.run(['make'], capture_output=True)
+    files = explore("out")
     width, height = WIDTH, HEIGHT
     args = list(sys.argv[1:])
     if "-g" in args:
@@ -37,7 +41,6 @@ def main():
             height = int(args.pop(id))
         except (IndexError, ValueError):
             pass
-    files = explore("ai")
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths]
     scores = dict()
@@ -45,15 +48,16 @@ def main():
         scores[file["filename"]] = 0
 
     for p1, p2 in combinations(players, 2):
-        result = game(p1, p2, width, height)
+        result = game([p1, p2], width, height)
         if result is not None:
             scores[result] += 1
 
-        result = game(p1, p2, width, height)
+        result = game([p2, p1], width, height)
         if result is not None:
             scores[result] += 1
 
     print_scores(scores)
+    subprocess.run(['make', 'clean'], capture_output=True)
 
 if __name__ == '__main__':
     main()
