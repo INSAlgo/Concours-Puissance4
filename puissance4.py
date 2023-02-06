@@ -19,13 +19,10 @@ class Player(ABC):
     @abstractmethod
     def startGame(self, no, width, height):
         self.no = no
+        self.playing = True
 
     @abstractmethod
     def askMove(self, verbose):
-        pass
-
-    @abstractmethod
-    def tellLastMove(self, x):
         pass
 
 class User(Player):
@@ -38,14 +35,11 @@ class User(Player):
 
     def askMove(self, verbose):
         if verbose:
-            print(f"Column for player {self.no} : ", end="")
+            print(f"Column for {self} : ", end="")
         try:
             return input()
         except KeyboardInterrupt:
             sys.exit(1)
-
-    def tellLastMove(self, x):
-        return super().tellLastMove(x)
 
     def __str__(self):
         return f"Player {self.no}"
@@ -176,16 +170,15 @@ def endMessage(winner=None):
     else:
         print(f"{winner} wins")
 
-def game(p1: Player, p2: Player, width, height, verbose=False):
-    p1.startGame(1, width, height)
-    p2.startGame(2, width, height)
-    players = (p1, p2)
+def game(players, width, height, verbose=False):
+    players = list(players)
+    for i, player in enumerate(players):
+        player.startGame(i+1, width, height)
     turn = 0
+    player = players[turn]
     board = [[0 for _ in range(height)] for _ in range(width)]
-    while True:
-        turn += 1
-        player = players[(turn + 1) % 2]
-        otherPlayer = players[turn % 2]
+    while len(players) > 1:
+        player = players[turn % len(players)]
         if verbose:
             display(board)
         userInput = False
@@ -193,29 +186,35 @@ def game(p1: Player, p2: Player, width, height, verbose=False):
             userInput = player.askMove(verbose)
             userInput = sanithize(board, userInput, verbose)
             if not userInput and isinstance(player, AI):
-                if verbose:
-                    endMessage(otherPlayer)
-                    return
-                elif isinstance(player, AI):
-                    return player.progName
+                players.remove(player)
+                turn -= 1
+                break
+        if not userInput:
+            continue
         x, y = userInput
         y = fallHeight(board, x)
         board[x][y] = player.no
-        otherPlayer.tellLastMove(x)
+        for otherPlayer in players:
+            if otherPlayer != player and isinstance(otherPlayer, AI):
+                otherPlayer.tellLastMove(x)
         if checkWin(board, player.no):
-            if verbose:
-                display(board)
-                endMessage(player)
-                return
-            elif isinstance(player, AI):
-                return player.progName
+            display(board)
+            break
         elif checkDraw(board):
-            if verbose: endMessage()
+            if verbose:
+                endMessage()
             return
+        turn += 1
+    if verbose:
+        endMessage(player)
+        return
+    elif isinstance(player, AI):
+        return player.progName
 
 def main():
     args = list(sys.argv[1:])
     verbose = True
+    nbPlayers = 2
     width, height = WIDTH, HEIGHT
     if "-s" in args:
         args.remove("-s")
@@ -224,20 +223,18 @@ def main():
     if "-g" in args:
         id = args.index("-g")
         args.pop(id)
-        try:
-            width = int(args.pop(id))
-            height = int(args.pop(id))
-        except (IndexError, ValueError):
-            pass
-    if len(args):
-        p1 = AI(args.pop(0))
-    else:
-        p1 = User()
-    if len(args):
-        p2 = AI(args.pop(0))
-    else:
-        p2 = User()
-    winnerFile = game(p1, p2, width, height, verbose)
+        width = int(args.pop(id))
+        height = int(args.pop(id))
+    if "-p" in args:
+        id = args.index("-p")
+        args.pop(id)
+        nbPlayers = int(args.pop(id))
+    players = []
+    while(args):
+        players.append(AI(args.pop(0)))
+    while len(players) < nbPlayers:
+        players.append(User())
+    winnerFile = game(players, width, height, verbose)
     if not verbose and winnerFile is not None:
         print(winnerFile)
 
