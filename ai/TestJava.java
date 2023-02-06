@@ -1,0 +1,20 @@
+
+import java.util.Scanner;
+
+class TestJava {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        int W = scanner.nextInt();
+        int H = scanner.nextInt();
+        int S = scanner.nextInt();
+
+        if(S==0) {
+            scanner.nextLine();
+        }
+
+        while(true) {
+            System.out.println(1);
+            scanner.nextLine();
+        }
+    }
+}
