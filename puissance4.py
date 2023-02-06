@@ -174,7 +174,7 @@ def endMessage(winner=None):
     else:
         print(f"{winner} wins")
 
-def game(players: List[Player], width, height, verbose=False):
+def game(players, width, height, verbose=False):
     players = list(players)
     for i, player in enumerate(players):
         player.startGame(i+1, width, height, len(players))
