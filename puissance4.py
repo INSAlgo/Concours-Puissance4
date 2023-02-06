@@ -64,6 +64,8 @@ class AI(Player):
                 return f"python {progPath}"
             case ".js":
                 return f"node {progPath}"
+            case ".class":
+                return f"java {path.splitext(progPath)[0]}"
             case _:
                 return f"./{progPath}"
 
