@@ -1,6 +1,8 @@
 import os
 from itertools import combinations
 
+import subprocess
+
 from puissance4 import game, AI
 
 
@@ -25,7 +27,8 @@ def print_scores(scores: dict[str, int]) -> None:
 
 
 def main():
-    files = explore("ai")
+    subprocess.run(['make'], capture_output=True)
+    files = explore("out")
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths]
     scores = dict()
@@ -40,6 +43,7 @@ def main():
         scores[result] += 1
 
     print_scores(scores)
+    subprocess.run(['make', 'clean'], capture_output=True)
 
     
 
