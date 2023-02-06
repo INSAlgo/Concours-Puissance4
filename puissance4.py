@@ -12,6 +12,7 @@ class Player(ABC):
 
     def __init__(self, no):
         self.no = no
+        self.verbose = True
 
     @abstractmethod
     def askMove(self):
@@ -33,7 +34,7 @@ class User(Player):
             sys.exit(1)
 
     def tellLastMove(self, x):
-        pass
+        super().tellLastMove(x)
 
 class AI(Player):
 
@@ -136,10 +137,10 @@ def game(p1: Player, p2: Player, verbose: bool):
         turn += 1
         player = players[(turn + 1)% 2]
         otherPlayer = players[turn % 2]
-        display(board, player, verbose)
+        display(board, player, player.verbose)
         while True:
             userInput = player.askMove()
-            x = sanithize(board, userInput, verbose=verbose)
+            x = sanithize(board, userInput, verbose=player.verbose)
             if x != -1:
                 break
             elif isinstance(player, AI):
