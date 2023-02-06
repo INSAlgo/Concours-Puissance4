@@ -8,7 +8,7 @@ int main ()
     string W, H, N, S, trash;
     cin >> W >> H >> N >> S;
 
-    if (S == "0")
+    if (S == "1")
         cin >> trash;
 
     while (1)

@@ -1,7 +1,7 @@
-
 import java.util.Scanner;
 
 class TestJava {
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         int W = scanner.nextInt();
@@ -9,7 +9,7 @@ class TestJava {
         int N = scanner.nextInt();
         int S = scanner.nextInt();
 
-        if(S==0) {
+        if(S == 2) {
             scanner.nextLine();
         }
 
