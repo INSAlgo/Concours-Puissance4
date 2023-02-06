@@ -9,7 +9,10 @@ def explore(dirname: str) -> list[dict[str, str]]:
     for root, dirs, files in os.walk(dirname):
         for file in files:
             # if file.endswith(extension)):
-            path_to_files.append({"path": os.path.join(root, file), "filename": file})
+            path_to_files.append({
+                "path": os.path.join(root, file), 
+                "filename": os.path.splitext(file)[0]
+            })
     return path_to_files
 
 
@@ -18,7 +21,7 @@ def print_scores(scores: dict[str, int]) -> None:
     # Tri :
     result = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     for i, (name, score) in enumerate(result):
-        print(f"{i+1}. {os.path.splitext(name)[0]}, score : {score}")
+        print(f"{i+1}. {name}, score : {score}")
 
 
 def main():
