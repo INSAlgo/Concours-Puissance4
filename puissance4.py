@@ -3,6 +3,7 @@
 import sys
 from abc import ABC, abstractmethod
 from os import path
+from typing import List
 import subprocess
 import pexpect
 
@@ -17,9 +18,8 @@ class Player(ABC):
         pass
 
     @abstractmethod
-    def startGame(self, no, width, height):
+    def startGame(self, no, width, height, nbPlayers):
         self.no = no
-        self.playing = True
 
     @abstractmethod
     def askMove(self, verbose):
@@ -30,8 +30,8 @@ class User(Player):
     def __init__(self):
         super().__init__()
 
-    def startGame(self, no, width, height):
-        return super().startGame(no, width, height)
+    def startGame(self, no, width, height, nbPlayers):
+        return super().startGame(no, width, height, nbPlayers)
 
     def askMove(self, verbose):
         if verbose:
@@ -49,7 +49,7 @@ class AI(Player):
     @staticmethod
     def prepareCommand(progPath, progName):
         if not path.exists(progPath):
-            sys.stderr.write(f"File {progPath} not found\n")
+            print(f"File {progPath} not found\n")
             sys.exit(1)
         extension = path.splitext(progPath)[1]
         match extension:
@@ -69,13 +69,16 @@ class AI(Player):
         self.progName = path.splitext(path.basename(progPath))[0]
         self.command = AI.prepareCommand(self.progPath, self.progName);
 
-    def startGame(self, no, width, height):
-        super().startGame(no, width, height)
+    def startGame(self, no, width, height, nbPlayers):
+        super().startGame(no, width, height, nbPlayers)
         self.prog = pexpect.spawn(self.command, timeout=TIMEOUT)
         self.prog.delaybeforesend = None
         self.prog.setecho(False)
-        start = 2 - self.no
-        self.prog.sendline(f"{width} {height} {start}")
+        self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
+
+    def loseGame(self, verbose):
+        if verbose: print(f"{self} is eliminated")
+        self.prog.close()
 
     def askMove(self, verbose):
         if verbose:
@@ -83,7 +86,8 @@ class AI(Player):
         try:
             progInput = self.prog.readline().decode('ascii').strip()
         except pexpect.TIMEOUT:
-            print("Program 1 took too long")
+            print()
+            print("Program took too long")
             return False
         if verbose:
             print(progInput)
@@ -170,10 +174,10 @@ def endMessage(winner=None):
     else:
         print(f"{winner} wins")
 
-def game(players, width, height, verbose=False):
+def game(players: List[Player], width, height, verbose=False):
     players = list(players)
     for i, player in enumerate(players):
-        player.startGame(i+1, width, height)
+        player.startGame(i+1, width, height, len(players))
     turn = 0
     player = players[turn]
     board = [[0 for _ in range(height)] for _ in range(width)]
@@ -181,18 +185,18 @@ def game(players, width, height, verbose=False):
         player = players[turn % len(players)]
         if verbose:
             display(board)
-        userInput = False
+        userInput = None
         while not userInput:
             userInput = player.askMove(verbose)
             userInput = sanithize(board, userInput, verbose)
-            if not userInput and isinstance(player, AI):
-                players.remove(player)
-                turn -= 1
+            if isinstance(player, AI):
                 break
-        if not userInput:
+        if userInput is None:
+            if isinstance(player, AI):
+                player.loseGame(verbose)
+            players.remove(player)
             continue
         x, y = userInput
-        y = fallHeight(board, x)
         board[x][y] = player.no
         for otherPlayer in players:
             if otherPlayer != player and isinstance(otherPlayer, AI):
@@ -205,11 +209,12 @@ def game(players, width, height, verbose=False):
                 endMessage()
             return
         turn += 1
+    winner = players[turn % len(players)]
     if verbose:
-        endMessage(player)
+        endMessage(winner)
         return
-    elif isinstance(player, AI):
-        return player.progName
+    elif isinstance(winner, AI):
+        return winner.progName
 
 def main():
     args = list(sys.argv[1:])
