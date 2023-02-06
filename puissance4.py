@@ -1,27 +1,88 @@
+#!/usr/bin/env python3
+
+import sys
+from abc import ABC, abstractmethod
+import pexpect
+
 WIDTH = 7
 HEIGHT = 6
 
-def checkWin(board):
+
+class Player(ABC):
+
+    def __init__(self, no):
+        self.no = no
+
+    @abstractmethod
+    def askMove(self):
+        pass
+
+    @abstractmethod
+    def tellLastMove(self, x):
+        pass
+
+class User(Player):
+
+    def __init__(self, no):
+        super().__init__(no)
+
+    def askMove(self):
+        try:
+            return input(f"Column for player {self.no} : ")
+        except KeyboardInterrupt:
+            sys.exit(1)
+
+    def tellLastMove(self, x):
+        pass
+
+class AI(Player):
+
+    def __init__(self, no, progName, W, H, verbose):
+        super().__init__(no)
+        self.verbose = verbose
+        self.progName = progName
+        self.prog = pexpect.spawn(f"./{progName}", timeout=1)
+        self.prog.setecho(False)
+        S = 2 - self.no
+        self.prog.sendline(f"{W} {H} {S}")
+
+    def askMove(self):
+        if self.verbose:
+            print(f"Column for AI {self.no} : ", end="")
+        try:
+            progInput = self.prog.readline().decode('ascii').strip()
+        except pexpect.TIMEOUT:
+            print("Program 1 took too long")
+            return False
+        if self.verbose:
+            print(progInput)
+        return progInput
+
+    def tellLastMove(self, x):
+        self.prog.sendline(str(x))
+
+def checkWin(board, no):
     for x in range(WIDTH):
         for y in range(HEIGHT):
-            color = board[x][y]
-            if color:
+            if board[x][y] == no:
                 for dx, dy in ((1, 0), (0, 1), (1, 1), (1, -1)):
                     streak = 1
                     for i in range(1, 4):
                         nx, ny = x + dx * i, y + dy * i
                         if nx >= WIDTH or ny >= HEIGHT:
                             break
-                        if board[nx][ny] == color:
+                        if board[nx][ny] == no:
                             streak += 1
                         else:
                             break
                     if streak >= 4:
-                        return color
-    return 0
+                        return True
+    return False
 
 
-def display(board):
+def display(board, player, verbose):
+    if isinstance(player, AI) and not verbose:
+        return
     print()
     print("  ", end="")
     for x in range(1, WIDTH + 1):
@@ -62,27 +123,55 @@ def sanithize(board, userInput, verbose=False):
         return -1
     return x
 
-def askMove(color):
-    return input("Column for player " + str(color) + " : ")
-
-def game():
+def game(p1: Player, p2: Player, verbose: bool):
+    players = (p1, p2)
+    turn = 0
     board = [[0 for _y in range(HEIGHT)] for _x in range(WIDTH)]
-    win = 0
-    player = 1
-    while win == 0:
-        display(board)
+    winner = None
+    while winner is None:
+        turn += 1
+        player = players[(turn + 1)% 2]
+        otherPlayer = players[turn % 2]
+        display(board, player, verbose)
         while True:
-            userInput = askMove(player)
-            x = sanithize(board, userInput, verbose=True)
+            userInput = player.askMove()
+            x = sanithize(board, userInput, verbose=verbose)
             if x != -1:
                 break
+            elif isinstance(player, AI):
+                winner = otherPlayer
+                break
         y = fallHeight(board, x)
-        board[x][y] = player
-        win = checkWin(board)
-        player = 3 - player
-    display(board)
-    print("Player", win, "wins")
+        board[x][y] = player.no
+        otherPlayer.tellLastMove(x)
+        if checkWin(board, player.no):
+            winner = player
+            display(board, player, verbose)
+
+    if verbose:
+        print(f"Player {winner.no} wins")
+    else:
+        print(winner.no)
+
+def main():
+    args = list(sys.argv[1:])
+    verboseAI = True
+    verbose = True
+    if "-s" in args:
+        verboseAI = False
+        args.remove("-s")
+    if len(args):
+        p1 = AI(1, args.pop(), WIDTH, HEIGHT, verboseAI)
+    else:
+        p1 = User(1)
+    if len(args):
+        p2 = AI(2, args.pop(), WIDTH, HEIGHT, verboseAI)
+        verbose = False
+    else:
+        p2 = User(2)
+    game(p1, p2, verbose)
+
 
 if __name__ == "__main__":
-    game()
+    main()
 
