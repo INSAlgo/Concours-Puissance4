@@ -19,13 +19,10 @@ class Player(ABC):
     @abstractmethod
     def startGame(self, no, width, height):
         self.no = no
+        self.playing = True
 
     @abstractmethod
     def askMove(self, verbose):
-        pass
-
-    @abstractmethod
-    def tellLastMove(self, x):
         pass
 
 class User(Player):
@@ -38,14 +35,11 @@ class User(Player):
 
     def askMove(self, verbose):
         if verbose:
-            print(f"Column for player {self.no} : ", end="")
+            print(f"Column for {self} : ", end="")
         try:
             return input()
         except KeyboardInterrupt:
             sys.exit(1)
-
-    def tellLastMove(self, x):
-        return super().tellLastMove(x)
 
     def __str__(self):
         return f"Player {self.no}"
@@ -103,14 +97,15 @@ class AI(Player):
 
 
 def checkWin(board, no):
-    for x in range(WIDTH):
-        for y in range(HEIGHT):
+    width, height = len(board), len(board[0])
+    for x in range(width):
+        for y in range(height):
             if board[x][y] == no:
                 for dx, dy in ((1, 0), (0, 1), (1, 1), (1, -1)):
                     streak = 1
                     for i in range(1, 4):
                         nx, ny = x + dx * i, y + dy * i
-                        if nx >= WIDTH or ny >= HEIGHT:
+                        if nx >= width or ny >= height:
                             break
                         if board[nx][ny] == no:
                             streak += 1
@@ -120,30 +115,36 @@ def checkWin(board, no):
                         return True
     return False
 
+def checkDraw(board):
+    for x in range(len(board)):
+        if not board[x][-1]:
+            return False
+    return True
 
 def display(board):
+    width, height = len(board), len(board[0])
     print()
     print("  ", end="")
-    for x in range(1, WIDTH + 1):
-        print(x, end=" ")
+    for x in range(1, width + 1):
+        print(x % 10, end=" ")
     print()
-    print("┌" + "─" * (WIDTH * 2 + 1) + "┐")
-    for y in range(HEIGHT - 1, -1, -1):
+    print("┌" + "─" * (width * 2 + 1) + "┐")
+    for y in range(height - 1, -1, -1):
         print("│", end=" ")
-        for x in range(WIDTH):
+        for x in range(width):
             if board[x][y]:
                 print(board[x][y], end=" ")
             else:
                 print(".", end=" ")
         print("│")
-    print("└" + "─" * (WIDTH * 2 + 1) + "┘")
+    print("└" + "─" * (width * 2 + 1) + "┘")
     print("  ", end="")
-    for x in range(1, WIDTH + 1):
-        print(x, end=" ")
+    for x in range(1, width + 1):
+        print(x % 10, end=" ")
     print()
 
 def fallHeight(board, x):
-    y = HEIGHT
+    y = len(board[0])
     while board[x][y - 1] == 0 and y > 0:
         y -= 1
     return y
@@ -154,30 +155,30 @@ def sanithize(board, userInput, verbose=False):
     except ValueError:
         if verbose: print("Invalid input")
         return
-    if not (0 <= x < WIDTH):
+    if not (0 <= x < len(board)):
         if verbose: print("Out of bounds")
         return
     y = fallHeight(board, x)
-    if y == HEIGHT:
+    if y == len(board[0]):
         if verbose: print("Column full")
         return
     return (x, y)
 
-def winMessage(winner):
-    print(f"{winner} wins")
-    return ""
+def endMessage(winner=None):
+    if winner is None:
+        print("Draw")
+    else:
+        print(f"{winner} wins")
 
-def game(p1: Player, p2: Player, width=WIDTH, height=HEIGHT, verbose=False):
-    p1.startGame(1, width, height)
-    p2.startGame(2, width, height)
-    players = (p1, p2)
+def game(players, width, height, verbose=False):
+    players = list(players)
+    for i, player in enumerate(players):
+        player.startGame(i+1, width, height)
     turn = 0
+    player = players[turn]
     board = [[0 for _ in range(height)] for _ in range(width)]
-    winner = None
-    while winner is None:
-        turn += 1
-        player = players[(turn + 1)% 2]
-        otherPlayer = players[turn % 2]
+    while len(players) > 1:
+        player = players[turn % len(players)]
         if verbose:
             display(board)
         userInput = False
@@ -185,38 +186,56 @@ def game(p1: Player, p2: Player, width=WIDTH, height=HEIGHT, verbose=False):
             userInput = player.askMove(verbose)
             userInput = sanithize(board, userInput, verbose)
             if not userInput and isinstance(player, AI):
-                if verbose:
-                    return winMessage(otherPlayer)
-                elif isinstance(player, AI):
-                    return player.progName
+                players.remove(player)
+                turn -= 1
+                break
+        if not userInput:
+            continue
         x, y = userInput
         y = fallHeight(board, x)
         board[x][y] = player.no
-        otherPlayer.tellLastMove(x)
+        for otherPlayer in players:
+            if otherPlayer != player and isinstance(otherPlayer, AI):
+                otherPlayer.tellLastMove(x)
         if checkWin(board, player.no):
+            display(board)
+            break
+        elif checkDraw(board):
             if verbose:
-                display(board)
-                return winMessage(otherPlayer)
-            elif isinstance(player, AI):
-                return player.progName
+                endMessage()
+            return
+        turn += 1
+    if verbose:
+        endMessage(player)
+        return
+    elif isinstance(player, AI):
+        return player.progName
 
 def main():
     args = list(sys.argv[1:])
     verbose = True
+    nbPlayers = 2
+    width, height = WIDTH, HEIGHT
     if "-s" in args:
         args.remove("-s")
         if len(args) >= 2:
             verbose = False
-    if len(args):
-        p1 = AI(args.pop())
-    else:
-        p1 = User()
-    if len(args):
-        p2 = AI(args.pop())
-    else:
-        p2 = User()
-    winnerFile = game(p1, p2, WIDTH, HEIGHT, verbose)
-    if not verbose:
+    if "-g" in args:
+        id = args.index("-g")
+        args.pop(id)
+        width = int(args.pop(id))
+        height = int(args.pop(id))
+    if "-p" in args:
+        id = args.index("-p")
+        args.pop(id)
+        nbPlayers = int(args.pop(id))
+    players = []
+    while(args):
+        players.append(AI(args.pop(0)))
+    while len(players) < nbPlayers:
+        players.append(User())
+    winnerFile = game(players, width, height, verbose)
+    if not verbose and winnerFile is not None:
         print(winnerFile)
 
 
