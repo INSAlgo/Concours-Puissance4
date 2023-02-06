@@ -55,24 +55,24 @@ class AI(Player):
     @staticmethod
     def prepareCommand(progPath, progName):
         if not path.exists(progPath):
-            sys.stderr.write(f"File {progName} not found\n")
+            sys.stderr.write(f"File {progPath} not found\n")
             sys.exit(1)
-        extension = progName.split(".")[-1]
+        extension = path.splitext(progPath)[1]
         match extension:
-            case "py":
+            case ".py":
                 return f"python {progPath}"
-            case "js":
+            case ".js":
                 return f"node {progPath}"
-            case "cpp":
+            case ".cpp":
                 subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
                 return f"./{progName}.out"
             case _:
-                return f"./{progName}"
+                return f"./{progPath}"
 
     def __init__(self, progPath):
         super().__init__()
         self.progPath = progPath
-        self.progName = path.basename(progPath)
+        self.progName = path.splitext(path.basename(progPath))[0]
         self.command = AI.prepareCommand(self.progPath, self.progName);
 
     def startGame(self, no, width, height):
