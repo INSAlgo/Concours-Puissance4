@@ -57,14 +57,20 @@ def main():
         for playersPermutations in permutations(playersCombinations):
             nbGames += 1
             matchPlayers = list(playersPermutations)
-            result = game(matchPlayers, width, height)
+            winner, errors = game(matchPlayers, width, height)
+            if winner:
+                scores[str(winner)] += 1
             if verbose:
                 print(f"{nbGames}. {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
-            if result:
-                scores[result] += 1
-                if verbose: print(result)
-            else:
-                if verbose: print("draw")
+                if winner:
+                    print(winner, end="")
+                else:
+                    print("draw", end="")
+                if errors:
+                    print(f" ({', '.join((f'{player}: {error}' for player, error in errors.items()))})")
+                else:
+                    print()
+
 
     printScores(scores, nbGames, nbPlayers, verbose)
     subprocess.run(['make', 'clean'], capture_output=True)

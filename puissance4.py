@@ -27,8 +27,28 @@ class Player(ABC):
         self.no = no
 
     @abstractmethod
-    def askMove(self, verbose):
+    def askMove(self, board, verbose):
         pass
+
+    @abstractmethod
+    def pprint():
+        pass
+
+    @staticmethod
+    def sanithize(board, userInput, verbose=False):
+        try:
+            x = int(userInput) - 1
+        except ValueError:
+            if verbose: print("Invalid input")
+            return (None, "invalid input")
+        if not (0 <= x < len(board)):
+            if verbose: print("Out of bounds")
+            return (None, "out of bounds")
+        y = fallHeight(board, x)
+        if y == len(board[0]):
+            if verbose: print("Column full")
+            return (None, "column full")
+        return ((x, y), None)
 
 class User(Player):
 
@@ -38,15 +58,15 @@ class User(Player):
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
-    def askMove(self, verbose):
+    def askMove(self, board, verbose):
         if verbose:
-            print(f"Column for {self} : ", end="")
+            print(f"Column for {self.pprint()} : ", end="")
         try:
-            return input()
+            return User.sanithize(board, input(), verbose)
         except KeyboardInterrupt:
             sys.exit(1)
 
-    def __str__(self):
+    def pprint(self):
         return f"Player {self.no}"
 
 class AI(Player):
@@ -81,27 +101,30 @@ class AI(Player):
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
 
     def loseGame(self, verbose):
-        if verbose: print(f"{self} is eliminated")
+        if verbose: print(f"{self.pprint()} is eliminated")
         self.prog.close()
 
-    def askMove(self, verbose):
+    def askMove(self, board, verbose):
         if verbose:
-            print(f"Column for {self} : ", end="")
+            print(f"Column for {self.pprint()} : ", end="")
         try:
             progInput = self.prog.readline().decode('ascii').strip()
         except TIMEOUT:
             if verbose:
                 print()
                 print("Program took too long")
-            return False
+            return (None, "timeout")
         if verbose:
             print(progInput)
-        return progInput
+        return User.sanithize(board, progInput, verbose)
 
     def tellLastMove(self, x):
         self.prog.sendline(str(x))
 
     def __str__(self):
+        return self.progName
+
+    def pprint(self):
         return f"AI {self.no} ({self.progName})"
 
 
@@ -153,20 +176,6 @@ def fallHeight(board, x):
         y -= 1
     return y
 
-def sanithize(board, userInput, verbose=False):
-    try:
-        x = int(userInput) - 1
-    except ValueError:
-        if verbose: print("Invalid input")
-        return
-    if not (0 <= x < len(board)):
-        if verbose: print("Out of bounds")
-        return
-    y = fallHeight(board, x)
-    if y == len(board[0]):
-        if verbose: print("Column full")
-        return
-    return (x, y)
 
 def endMessage(winner=None):
     if winner is None:
@@ -176,6 +185,7 @@ def endMessage(winner=None):
 
 def game(players, width, height, verbose=False):
     players = list(players)
+    errors = {}
     for i, player in enumerate(players):
         player.startGame(i+1, width, height, len(players))
     turn = 0
@@ -185,15 +195,15 @@ def game(players, width, height, verbose=False):
         player = players[turn % len(players)]
         if verbose:
             display(board)
-        userInput = None
+        userInput, error = None, None
         while not userInput:
-            userInput = player.askMove(verbose)
-            userInput = sanithize(board, userInput, verbose)
+            userInput, error = player.askMove(board, verbose)
             if isinstance(player, AI):
                 break
-        if userInput is None:
+        if error:
             if isinstance(player, AI):
                 player.loseGame(verbose)
+                errors[player] = error
             players.remove(player)
             continue
         x, y = userInput
@@ -208,14 +218,10 @@ def game(players, width, height, verbose=False):
         elif checkDraw(board):
             if verbose:
                 endMessage()
-            return
+            return (None, errors)
         turn += 1
     winner = players[turn % len(players)]
-    if verbose:
-        endMessage(winner)
-        return
-    elif isinstance(winner, AI):
-        return winner.progName
+    return (winner, errors)
 
 def main():
     args = list(sys.argv[1:])
