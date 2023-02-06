@@ -77,7 +77,7 @@ class AI(Player):
         self.command = AI.prepareCommand(self.progPath, self.progName);
 
     def startGame(self, no, width, height, nbPlayers):
-        super().startGame(no, width, height)
+        super().startGame(no, width, height, nbPlayers)
         self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
         self.prog.delaybeforesend = None
         self.prog.setecho(False)
