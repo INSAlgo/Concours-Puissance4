@@ -12,8 +12,8 @@ TIMEOUT = 0.1
 
 class Player(ABC):
 
-    def __init__(self, no):
-        self.no = no
+    def __init__(self):
+        self.no = 0
         self.verbose = True
 
     @abstractmethod
@@ -30,8 +30,8 @@ class Player(ABC):
 
 class User(Player):
 
-    def __init__(self, no):
-        super().__init__(no)
+    def __init__(self):
+        super().__init__()
 
     def askMove(self):
         try:
@@ -61,8 +61,8 @@ class AI(Player):
             case _:
                 return f"./{progName}"
 
-    def __init__(self, no, progName, width=WIDTH, height=HEIGHT, verbose=False):
-        super().__init__(no)
+    def __init__(self, progName, width=WIDTH, height=HEIGHT, verbose=False):
+        super().__init__()
         self.verbose = verbose
         self.progName = path.basename(progName)
         self.prog = pexpect.spawn(AI.cmd(progName), timeout=TIMEOUT)
@@ -156,7 +156,9 @@ def sanithize(board, userInput, verbose=False):
         return (-1, -1)
     return (x, y)
 
-def game(p1: Player, p2: Player, verbose: bool):
+def game(p1: Player, p2: Player, verbose=False):
+    p1.no = 1
+    p2.no = 2
     players = (p1, p2)
     turn = 0
     board = [[0 for _y in range(HEIGHT)] for _x in range(WIDTH)]
@@ -181,7 +183,7 @@ def game(p1: Player, p2: Player, verbose: bool):
             winner = player
             display(board, player, verbose)
     if verbose:
-        return f"{winner.getName(verbose)} wins"
+        print(f"{winner.getName(verbose)} wins")
     else:
         return winner.getName(verbose)
 
@@ -193,15 +195,17 @@ def main():
         verboseAI = False
         args.remove("-s")
     if len(args):
-        p1 = AI(1, args.pop(), WIDTH, HEIGHT, verboseAI)
+        p1 = AI(args.pop(), WIDTH, HEIGHT, verboseAI)
     else:
-        p1 = User(1)
+        p1 = User()
     if len(args):
-        p2 = AI(2, args.pop(), WIDTH, HEIGHT, verboseAI)
+        p2 = AI(args.pop(), WIDTH, HEIGHT, verboseAI)
         verbose = verboseAI
     else:
-        p2 = User(2)
-    print(game(p1, p2, verbose))
+        p2 = User()
+    winnerFile = game(p1, p2, verbose)
+    if not verbose:
+        print(winnerFile)
 
 
 if __name__ == "__main__":
