@@ -61,14 +61,15 @@ class AI(Player):
             case _:
                 return f"./{progName}"
 
-    def __init__(self, no, progName, W, H, verbose):
+    def __init__(self, no, progName, width=WIDTH, height=HEIGHT, verbose=False):
         super().__init__(no)
         self.verbose = verbose
         self.progName = path.basename(progName)
         self.prog = pexpect.spawn(AI.cmd(progName), timeout=TIMEOUT)
+        self.prog.delaybeforesend = None
         self.prog.setecho(False)
         S = 2 - self.no
-        self.prog.sendline(f"{W} {H} {S}")
+        self.prog.sendline(f"{width} {height} {S}")
 
     def askMove(self):
         if self.verbose:
@@ -145,14 +146,15 @@ def sanithize(board, userInput, verbose=False):
         x = int(userInput) - 1
     except ValueError:
         if verbose: print("Invalid input")
-        return -1
+        return (-1, -1)
     if not (0 <= x < WIDTH):
         if verbose: print("Out of bounds")
-        return -1
-    if fallHeight(board, x) == HEIGHT:
+        return (-1, -1)
+    y = fallHeight(board, x)
+    if y == HEIGHT:
         if verbose: print("Column full")
-        return -1
-    return x
+        return (-1, -1)
+    return (x, y)
 
 def game(p1: Player, p2: Player, verbose: bool):
     players = (p1, p2)
@@ -166,7 +168,7 @@ def game(p1: Player, p2: Player, verbose: bool):
         display(board, player, player.verbose)
         while True:
             userInput = player.askMove()
-            x = sanithize(board, userInput, verbose=player.verbose)
+            x, y = sanithize(board, userInput, verbose=player.verbose)
             if x != -1:
                 break
             elif isinstance(player, AI):
@@ -179,9 +181,9 @@ def game(p1: Player, p2: Player, verbose: bool):
             winner = player
             display(board, player, verbose)
     if verbose:
-        print(f"{winner.getName(verbose)} wins")
+        return f"{winner.getName(verbose)} wins"
     else:
-        print(winner.getName(verbose))
+        return winner.getName(verbose)
 
 def main():
     args = list(sys.argv[1:])
@@ -199,7 +201,7 @@ def main():
         verbose = verboseAI
     else:
         p2 = User(2)
-    game(p1, p2, verbose)
+    print(game(p1, p2, verbose))
 
 
 if __name__ == "__main__":
