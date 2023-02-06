@@ -162,7 +162,7 @@ def winMessage(winner):
     print(f"{winner} wins")
     return ""
 
-def game(p1: Player, p2: Player, verbose=False, width=WIDTH, height=HEIGHT):
+def game(p1: Player, p2: Player, width=WIDTH, height=HEIGHT, verbose=False):
     p1.startGame(1, width, height)
     p2.startGame(2, width, height)
     players = (p1, p2)
@@ -210,7 +210,7 @@ def main():
         p2 = AI(args.pop())
     else:
         p2 = User()
-    winnerFile = game(p1, p2, verbose)
+    winnerFile = game(p1, p2, WIDTH, HEIGHT, verbose)
     if not verbose:
         print(winnerFile)
 
