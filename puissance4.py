@@ -15,7 +15,7 @@ from pexpect import TIMEOUT
 
 WIDTH = 7
 HEIGHT = 6
-TIMEOUT = 0.1
+TIMEOUT_LENGTH = 0.1
 
 
 class Player(ABC):
@@ -78,7 +78,7 @@ class AI(Player):
 
     def startGame(self, no, width, height):
         super().startGame(no, width, height)
-        self.prog = spawn(self.command, timeout=TIMEOUT)
+        self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
         self.prog.delaybeforesend = None
         # self.prog.setecho(False)
         start = 2 - self.no
