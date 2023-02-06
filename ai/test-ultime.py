@@ -1,9 +1,12 @@
 import random
 
-W, H, S = map(int, input().split())
-if not int(S): input()
+W, H, N, S = map(int, input().split())
 
 x = random.randint(1, W)
+t = 0
 while True:
-    print(x)
-    input()
+    t = t % N + 1
+    if t == S:
+        print(x)
+    else:
+        input()
