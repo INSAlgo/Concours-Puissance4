@@ -3,8 +3,6 @@
 import sys
 from abc import ABC, abstractmethod
 from os import path
-from typing import List
-import subprocess
 
 # Conditional import :
 from platform import system
