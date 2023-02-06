@@ -83,7 +83,7 @@ class AI(Player):
             case ".js":
                 return f"node {progPath}"
             case ".class":
-                return f"java {path.splitext(progPath)[0]}"
+                return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
             case _:
                 return f"./{progPath}"
 
