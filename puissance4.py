@@ -13,19 +13,18 @@ TIMEOUT = 0.1
 class Player(ABC):
 
     def __init__(self):
-        self.no = 0
-        self.verbose = True
+        pass
 
     @abstractmethod
-    def askMove(self):
+    def startGame(self, no, width, height):
+        self.no = no
+
+    @abstractmethod
+    def askMove(self, verbose):
         pass
 
     @abstractmethod
     def tellLastMove(self, x):
-        pass
-
-    @abstractmethod
-    def getName(self, verbose):
         pass
 
 class User(Player):
@@ -33,22 +32,27 @@ class User(Player):
     def __init__(self):
         super().__init__()
 
-    def askMove(self):
+    def startGame(self, no, width, height):
+        return super().startGame(no, width, height)
+
+    def askMove(self, verbose):
+        if verbose:
+            print(f"Column for player {self.no} : ", end="")
         try:
-            return input(f"Column for player {self.no} : ")
+            return input()
         except KeyboardInterrupt:
             sys.exit(1)
 
     def tellLastMove(self, x):
-        super().tellLastMove(x)
+        return super().tellLastMove(x)
 
-    def getName(self, verbose):
+    def __str__(self):
         return f"Player {self.no}"
 
 class AI(Player):
 
     @staticmethod
-    def cmd(progName):
+    def command(progName):
         if not path.exists(progName):
             sys.stderr.write(f"File {progName} not found\n")
             sys.exit(1)
@@ -61,36 +65,36 @@ class AI(Player):
             case _:
                 return f"./{progName}"
 
-    def __init__(self, progName, width=WIDTH, height=HEIGHT, verbose=False):
+    def __init__(self, progPath):
         super().__init__()
-        self.verbose = verbose
-        self.progName = path.basename(progName)
-        self.prog = pexpect.spawn(AI.cmd(progName), timeout=TIMEOUT)
+        self.progPath = progPath
+        self.progName = path.basename(progPath)
+
+    def startGame(self, no, width, height):
+        super().startGame(no, width, height)
+        self.prog = pexpect.spawn(AI.command(self.progPath), timeout=TIMEOUT)
         self.prog.delaybeforesend = None
         self.prog.setecho(False)
-        S = 2 - self.no
-        self.prog.sendline(f"{width} {height} {S}")
+        start = 2 - self.no
+        self.prog.sendline(f"{width} {height} {start}")
 
-    def askMove(self):
-        if self.verbose:
-            print(f"Column for {self.getName()} : ", end="")
+    def askMove(self, verbose):
+        if verbose:
+            print(f"Column for {self} : ", end="")
         try:
             progInput = self.prog.readline().decode('ascii').strip()
         except pexpect.TIMEOUT:
             print("Program 1 took too long")
             return False
-        if self.verbose:
+        if verbose:
             print(progInput)
         return progInput
 
     def tellLastMove(self, x):
         self.prog.sendline(str(x))
 
-    def getName(self, verbose=True):
-        if verbose:
-            return f"AI {self.no} ({self.progName})"
-        else:
-            return self.progName
+    def __str__(self):
+        return f"AI {self.no} ({self.progName})"
 
 
 def checkWin(board, no):
@@ -112,9 +116,7 @@ def checkWin(board, no):
     return False
 
 
-def display(board, player, verbose):
-    if isinstance(player, AI) and not verbose:
-        return
+def display(board):
     print()
     print("  ", end="")
     for x in range(1, WIDTH + 1):
@@ -146,61 +148,66 @@ def sanithize(board, userInput, verbose=False):
         x = int(userInput) - 1
     except ValueError:
         if verbose: print("Invalid input")
-        return (-1, -1)
+        return
     if not (0 <= x < WIDTH):
         if verbose: print("Out of bounds")
-        return (-1, -1)
+        return
     y = fallHeight(board, x)
     if y == HEIGHT:
         if verbose: print("Column full")
-        return (-1, -1)
+        return
     return (x, y)
 
-def game(p1: Player, p2: Player, verbose=False):
-    p1.no = 1
-    p2.no = 2
+def winMessage(winner):
+    print(f"{winner} wins")
+    return ""
+
+def game(p1: Player, p2: Player, verbose=False, width=WIDTH, height=HEIGHT):
+    p1.startGame(1, width, height)
+    p2.startGame(2, width, height)
     players = (p1, p2)
     turn = 0
-    board = [[0 for _y in range(HEIGHT)] for _x in range(WIDTH)]
+    board = [[0 for _ in range(height)] for _ in range(width)]
     winner = None
     while winner is None:
         turn += 1
         player = players[(turn + 1)% 2]
         otherPlayer = players[turn % 2]
-        display(board, player, player.verbose)
-        while True:
-            userInput = player.askMove()
-            x, y = sanithize(board, userInput, verbose=player.verbose)
-            if x != -1:
-                break
-            elif isinstance(player, AI):
-                winner = otherPlayer
-                break
+        if verbose:
+            display(board)
+        userInput = False
+        while not userInput:
+            userInput = player.askMove(verbose)
+            userInput = sanithize(board, userInput, verbose)
+            if not userInput and isinstance(player, AI):
+                if verbose:
+                    return winMessage(otherPlayer)
+                elif isinstance(player, AI):
+                    return player.progName
+        x, y = userInput
         y = fallHeight(board, x)
         board[x][y] = player.no
         otherPlayer.tellLastMove(x)
         if checkWin(board, player.no):
-            winner = player
-            display(board, player, verbose)
-    if verbose:
-        print(f"{winner.getName(verbose)} wins")
-    else:
-        return winner.getName(verbose)
+            if verbose:
+                display(board)
+                return winMessage(otherPlayer)
+            elif isinstance(player, AI):
+                return player.progName
 
 def main():
     args = list(sys.argv[1:])
-    verboseAI = True
     verbose = True
     if "-s" in args:
-        verboseAI = False
         args.remove("-s")
+        if len(args) >= 2:
+            verbose = False
     if len(args):
-        p1 = AI(args.pop(), WIDTH, HEIGHT, verboseAI)
+        p1 = AI(args.pop())
     else:
         p1 = User()
     if len(args):
-        p2 = AI(args.pop(), WIDTH, HEIGHT, verboseAI)
-        verbose = verboseAI
+        p2 = AI(args.pop())
     else:
         p2 = User()
     winnerFile = game(p1, p2, verbose)
