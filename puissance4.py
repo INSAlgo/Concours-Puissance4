@@ -3,6 +3,7 @@
 import sys
 from abc import ABC, abstractmethod
 from os import path
+import subprocess
 import pexpect
 
 WIDTH = 7
@@ -52,16 +53,19 @@ class User(Player):
 class AI(Player):
 
     @staticmethod
-    def command(progName):
-        if not path.exists(progName):
+    def prepareCommand(progPath, progName):
+        if not path.exists(progPath):
             sys.stderr.write(f"File {progName} not found\n")
             sys.exit(1)
         extension = progName.split(".")[-1]
         match extension:
             case "py":
-                return f"python {progName}"
+                return f"python {progPath}"
             case "js":
-                return f"node {progName}"
+                return f"node {progPath}"
+            case "cpp":
+                subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
+                return f"./{progName}.out"
             case _:
                 return f"./{progName}"
 
@@ -69,10 +73,11 @@ class AI(Player):
         super().__init__()
         self.progPath = progPath
         self.progName = path.basename(progPath)
+        self.command = AI.prepareCommand(self.progPath, self.progName);
 
     def startGame(self, no, width, height):
         super().startGame(no, width, height)
-        self.prog = pexpect.spawn(AI.command(self.progPath), timeout=TIMEOUT)
+        self.prog = pexpect.spawn(self.command, timeout=TIMEOUT)
         self.prog.delaybeforesend = None
         self.prog.setecho(False)
         start = 2 - self.no
