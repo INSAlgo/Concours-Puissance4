@@ -24,16 +24,16 @@ def print_scores(scores: dict[str, int]) -> None:
 def main():
     files = explore("ai")
     paths = [file["path"] for file in files]
-    players = [AI(i, name) for i, name in enumerate(paths)]
+    players = [AI(name) for name in paths]
     scores = dict()
     for file in files:
         scores[file["filename"]] = 0
 
     for p1, p2 in combinations(players, 2):
-        result = game(p1, p2, False)
+        result = game(p1, p2)
         scores[result] += 1
 
-        result = game(p2, p1, False)
+        result = game(p2, p1)
         scores[result] += 1
 
     print_scores(scores)
