@@ -46,10 +46,12 @@ def main():
 
     for p1, p2 in combinations(players, 2):
         result = game(p1, p2, width, height)
-        scores[result] += 1
+        if result is not None:
+            scores[result] += 1
 
         result = game(p1, p2, width, height)
-        scores[result] += 1
+        if result is not None:
+            scores[result] += 1
 
     print_scores(scores)
 
