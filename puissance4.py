@@ -2,10 +2,12 @@
 
 import sys
 from abc import ABC, abstractmethod
+from os import path
 import pexpect
 
 WIDTH = 7
 HEIGHT = 6
+TIMEOUT = 0.1
 
 
 class Player(ABC):
@@ -22,6 +24,10 @@ class Player(ABC):
     def tellLastMove(self, x):
         pass
 
+    @abstractmethod
+    def getName(self, verbose):
+        pass
+
 class User(Player):
 
     def __init__(self, no):
@@ -36,24 +42,37 @@ class User(Player):
     def tellLastMove(self, x):
         super().tellLastMove(x)
 
+    def getName(self, verbose):
+        return f"Player {self.no}"
+
 class AI(Player):
+
+    @staticmethod
+    def cmd(progName):
+        if not path.exists(progName):
+            sys.stderr.write(f"File {progName} not found\n")
+            sys.exit(1)
+        extension = progName.split(".")[-1]
+        match extension:
+            case "py":
+                return f"python {progName}"
+            case "js":
+                return f"node {progName}"
+            case _:
+                return f"./{progName}"
 
     def __init__(self, no, progName, W, H, verbose):
         super().__init__(no)
         self.verbose = verbose
-        self.progName = progName
-        if progName.endswith(".py"):
-            cmd = f"python {progName}"
-        else:
-            cmd = f"./{progName}"
-        self.prog = pexpect.spawn(cmd, timeout=1)
+        self.progName = path.basename(progName)
+        self.prog = pexpect.spawn(AI.cmd(progName), timeout=TIMEOUT)
         self.prog.setecho(False)
         S = 2 - self.no
         self.prog.sendline(f"{W} {H} {S}")
 
     def askMove(self):
         if self.verbose:
-            print(f"Column for AI {self.no} : ", end="")
+            print(f"Column for {self.getName()} : ", end="")
         try:
             progInput = self.prog.readline().decode('ascii').strip()
         except pexpect.TIMEOUT:
@@ -65,6 +84,13 @@ class AI(Player):
 
     def tellLastMove(self, x):
         self.prog.sendline(str(x))
+
+    def getName(self, verbose=True):
+        if verbose:
+            return f"AI {self.no} ({self.progName})"
+        else:
+            return self.progName
+
 
 def checkWin(board, no):
     for x in range(WIDTH):
@@ -152,11 +178,10 @@ def game(p1: Player, p2: Player, verbose: bool):
         if checkWin(board, player.no):
             winner = player
             display(board, player, verbose)
-
     if verbose:
-        print(f"Player {winner.no} wins")
+        print(f"{winner.getName(verbose)} wins")
     else:
-        print(winner.no)
+        print(winner.getName(verbose))
 
 def main():
     args = list(sys.argv[1:])
@@ -171,7 +196,7 @@ def main():
         p1 = User(1)
     if len(args):
         p2 = AI(2, args.pop(), WIDTH, HEIGHT, verboseAI)
-        verbose = False
+        verbose = verboseAI
     else:
         p2 = User(2)
     game(p1, p2, verbose)
