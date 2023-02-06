@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import random
 
 W, H, S = map(int, input().split())

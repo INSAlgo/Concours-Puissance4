@@ -41,7 +41,11 @@ class AI(Player):
         super().__init__(no)
         self.verbose = verbose
         self.progName = progName
-        self.prog = pexpect.spawn(f"./{progName}", timeout=1)
+        if progName.endswith(".py"):
+            cmd = f"python {progName}"
+        else:
+            cmd = f"./{progName}"
+        self.prog = pexpect.spawn(cmd, timeout=1)
         self.prog.setecho(False)
         S = 2 - self.no
         self.prog.sendline(f"{W} {H} {S}")
