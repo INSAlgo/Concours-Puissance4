@@ -54,7 +54,7 @@ class User(Player):
 class AI(Player):
 
     @staticmethod
-    def prepareCommand(progPath, progName):
+    def prepareCommand(progPath):
         if not path.exists(progPath):
             print(f"File {progPath} not found\n")
             sys.exit(1)
@@ -71,7 +71,7 @@ class AI(Player):
         super().__init__()
         self.progPath = progPath
         self.progName = path.splitext(path.basename(progPath))[0]
-        self.command = AI.prepareCommand(self.progPath, self.progName);
+        self.command = AI.prepareCommand(self.progPath);
 
     def startGame(self, no, width, height, nbPlayers):
         super().startGame(no, width, height, nbPlayers)
@@ -90,8 +90,9 @@ class AI(Player):
         try:
             progInput = self.prog.readline().decode('ascii').strip()
         except TIMEOUT:
-            print()
-            print("Program took too long")
+            if verbose:
+                print()
+                print("Program took too long")
             return False
         if verbose:
             print(progInput)
