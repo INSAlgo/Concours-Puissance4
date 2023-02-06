@@ -29,11 +29,11 @@ def main():
     subprocess.run(['make'], capture_output=True)
     files = explore("out")
     width, height = WIDTH, HEIGHT
-    verbose = False
+    verbose = True
     nbPlayers = 2
     args = list(sys.argv[1:])
-    if "-v" in args:
-        verbose = True
+    if "-s" in args:
+        verbose = False
     if "-p" in args:
         id = args.index("-p")
         args.pop(id)
@@ -55,16 +55,16 @@ def main():
     nbGames = 0
     for playersCombinations in combinations(players, nbPlayers):
         for playersPermutations in permutations(playersCombinations):
+            nbGames += 1
             matchPlayers = list(playersPermutations)
             result = game(matchPlayers, width, height)
             if verbose:
-                print(" vs ".join((player.progName for player in matchPlayers)), end=" -> ")
+                print(f"{nbGames}. {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
             if result:
                 scores[result] += 1
                 if verbose: print(result)
             else:
                 if verbose: print("draw")
-            nbGames += 1
 
     printScores(scores, nbGames, nbPlayers, verbose)
     subprocess.run(['make', 'clean'], capture_output=True)
