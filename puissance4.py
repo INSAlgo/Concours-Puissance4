@@ -198,7 +198,8 @@ def game(players, width, height, verbose=False):
             if otherPlayer != player and isinstance(otherPlayer, AI):
                 otherPlayer.tellLastMove(x)
         if checkWin(board, player.no):
-            display(board)
+            if verbose :
+                display(board)
             break
         elif checkDraw(board):
             if verbose:

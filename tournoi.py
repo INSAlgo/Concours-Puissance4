@@ -48,11 +48,11 @@ def main():
         scores[file["filename"]] = 0
 
     for p1, p2 in combinations(players, 2):
-        result = game(p1, p2, width, height)
+        result = game([p1, p2], width, height)
         if result is not None:
             scores[result] += 1
 
-        result = game(p1, p2, width, height)
+        result = game([p2, p1], width, height)
         if result is not None:
             scores[result] += 1
 
