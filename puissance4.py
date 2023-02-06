@@ -5,7 +5,14 @@ from abc import ABC, abstractmethod
 from os import path
 from typing import List
 import subprocess
-import pexpect
+
+# Conditional import :
+from platform import system
+if system() == "Windows":
+    from pexpect.popen_spawn import PopenSpawn as spawn
+else :
+    from pexpect import spawn
+from pexpect import TIMEOUT
 
 WIDTH = 7
 HEIGHT = 6
@@ -128,24 +135,19 @@ def checkDraw(board):
 def display(board):
     width, height = len(board), len(board[0])
     print()
-    print("  ", end="")
-    for x in range(1, width + 1):
-        print(x % 10, end=" ")
-    print()
-    print("┌" + "─" * (width * 2 + 1) + "┐")
-    for y in range(height - 1, -1, -1):
-        print("│", end=" ")
-        for x in range(width):
-            if board[x][y]:
-                print(board[x][y], end=" ")
-            else:
-                print(".", end=" ")
-        print("│")
-    print("└" + "─" * (width * 2 + 1) + "┘")
-    print("  ", end="")
-    for x in range(1, width + 1):
-        print(x % 10, end=" ")
-    print()
+    line = "  " + ' '.join(str((x+1)%10) for x in range(width)) + "  "
+    print(line)
+    line = '┌' + '─' * (width * 2 + 1) + '┐'
+    print(line)
+    for y in range(height - 1, -1, -1) :
+        line = "│ "
+        raw_line = ' '.join(str(board[x][y]) for x in range(width))
+        line += raw_line.replace('0', '.') + " │"
+        print(line)
+    line = '└' + '─' * (width * 2 + 1) + '┘'
+    print(line)
+    line = "  " + ' '.join(str((x+1)%10) for x in range(width)) + "  "
+    print(line)
 
 def fallHeight(board, x):
     y = len(board[0])
@@ -202,7 +204,8 @@ def game(players: List[Player], width, height, verbose=False):
             if otherPlayer != player and isinstance(otherPlayer, AI):
                 otherPlayer.tellLastMove(x)
         if checkWin(board, player.no):
-            display(board)
+            if verbose :
+                display(board)
             break
         elif checkDraw(board):
             if verbose:
