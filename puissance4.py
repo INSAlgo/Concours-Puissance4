@@ -64,9 +64,6 @@ class AI(Player):
                 return f"python {progPath}"
             case ".js":
                 return f"node {progPath}"
-            case ".cpp":
-                subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
-                return f"./{progName}.out"
             case _:
                 return f"./{progPath}"
 
