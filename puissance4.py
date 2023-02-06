@@ -103,14 +103,15 @@ class AI(Player):
 
 
 def checkWin(board, no):
-    for x in range(WIDTH):
-        for y in range(HEIGHT):
+    width, height = len(board), len(board[0])
+    for x in range(width):
+        for y in range(height):
             if board[x][y] == no:
                 for dx, dy in ((1, 0), (0, 1), (1, 1), (1, -1)):
                     streak = 1
                     for i in range(1, 4):
                         nx, ny = x + dx * i, y + dy * i
-                        if nx >= WIDTH or ny >= HEIGHT:
+                        if nx >= width or ny >= height:
                             break
                         if board[nx][ny] == no:
                             streak += 1
@@ -122,28 +123,29 @@ def checkWin(board, no):
 
 
 def display(board):
+    width, height = len(board), len(board[0])
     print()
     print("  ", end="")
-    for x in range(1, WIDTH + 1):
-        print(x, end=" ")
+    for x in range(1, width + 1):
+        print(x % 10, end=" ")
     print()
-    print("┌" + "─" * (WIDTH * 2 + 1) + "┐")
-    for y in range(HEIGHT - 1, -1, -1):
+    print("┌" + "─" * (width * 2 + 1) + "┐")
+    for y in range(height - 1, -1, -1):
         print("│", end=" ")
-        for x in range(WIDTH):
+        for x in range(width):
             if board[x][y]:
                 print(board[x][y], end=" ")
             else:
                 print(".", end=" ")
         print("│")
-    print("└" + "─" * (WIDTH * 2 + 1) + "┘")
+    print("└" + "─" * (width * 2 + 1) + "┘")
     print("  ", end="")
-    for x in range(1, WIDTH + 1):
-        print(x, end=" ")
+    for x in range(1, width + 1):
+        print(x % 10, end=" ")
     print()
 
 def fallHeight(board, x):
-    y = HEIGHT
+    y = len(board[0])
     while board[x][y - 1] == 0 and y > 0:
         y -= 1
     return y
@@ -154,11 +156,11 @@ def sanithize(board, userInput, verbose=False):
     except ValueError:
         if verbose: print("Invalid input")
         return
-    if not (0 <= x < WIDTH):
+    if not (0 <= x < len(board)):
         if verbose: print("Out of bounds")
         return
     y = fallHeight(board, x)
-    if y == HEIGHT:
+    if y == len(board[0]):
         if verbose: print("Column full")
         return
     return (x, y)
@@ -167,7 +169,7 @@ def winMessage(winner):
     print(f"{winner} wins")
     return ""
 
-def game(p1: Player, p2: Player, width=WIDTH, height=HEIGHT, verbose=False):
+def game(p1: Player, p2: Player, width, height, verbose=False):
     p1.startGame(1, width, height)
     p2.startGame(2, width, height)
     players = (p1, p2)
@@ -176,7 +178,7 @@ def game(p1: Player, p2: Player, width=WIDTH, height=HEIGHT, verbose=False):
     winner = None
     while winner is None:
         turn += 1
-        player = players[(turn + 1)% 2]
+        player = players[(turn + 1) % 2]
         otherPlayer = players[turn % 2]
         if verbose:
             display(board)
@@ -196,26 +198,32 @@ def game(p1: Player, p2: Player, width=WIDTH, height=HEIGHT, verbose=False):
         if checkWin(board, player.no):
             if verbose:
                 display(board)
-                return winMessage(otherPlayer)
+                return winMessage(player)
             elif isinstance(player, AI):
                 return player.progName
 
 def main():
     args = list(sys.argv[1:])
     verbose = True
+    width, height = WIDTH, HEIGHT
     if "-s" in args:
         args.remove("-s")
         if len(args) >= 2:
             verbose = False
     if len(args):
-        p1 = AI(args.pop())
+        p1 = AI(args.pop(0))
     else:
         p1 = User()
     if len(args):
-        p2 = AI(args.pop())
+        p2 = AI(args.pop(0))
     else:
         p2 = User()
-    winnerFile = game(p1, p2, WIDTH, HEIGHT, verbose)
+    try:
+        width = int(args.pop(0))
+        height = int(args.pop(0))
+    except (IndexError, ValueError):
+        pass
+    winnerFile = game(p1, p2, width, height, verbose)
     if not verbose:
         print(winnerFile)
 

@@ -1,7 +1,10 @@
+#!/usr/bin/env python3
+
 import os
+import sys
 from itertools import combinations
 
-from puissance4 import game, AI
+from puissance4 import game, AI, WIDTH, HEIGHT
 
 
 def explore(dirname: str) -> list[dict[str, str]]:
@@ -17,14 +20,21 @@ def explore(dirname: str) -> list[dict[str, str]]:
 
 
 def print_scores(scores: dict[str, int]) -> None:
-    print("Résultat des scores :")
     # Tri :
     result = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     for i, (name, score) in enumerate(result):
-        print(f"{i+1}. {name}, score : {score}")
+        print(f"{i+1}. {name} ({score})")
 
 
 def main():
+    width, height = WIDTH, HEIGHT
+    args = list(sys.argv[1:])
+    try:
+        args.pop(0)
+        width = int(args.pop(0))
+        height = int(args.pop(0))
+    except (IndexError, ValueError):
+        pass
     files = explore("ai")
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths]
@@ -33,16 +43,13 @@ def main():
         scores[file["filename"]] = 0
 
     for p1, p2 in combinations(players, 2):
-        result = game(p1, p2)
+        result = game(p1, p2, width, height)
         scores[result] += 1
 
-        result = game(p2, p1)
+        result = game(p1, p2, width, height)
         scores[result] += 1
 
     print_scores(scores)
-
-    
-
 
 if __name__ == '__main__':
     main()
