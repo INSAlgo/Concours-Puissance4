@@ -5,8 +5,8 @@ using namespace std;
 
 int main ()
 {
-    string W, H, S, trash;
-    cin >> W >> H >> S;
+    string W, H, N, S, trash;
+    cin >> W >> H >> N >> S;
 
     if (S == "0")
         cin >> trash;

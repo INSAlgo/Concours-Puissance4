@@ -6,6 +6,7 @@ class TestJava {
         Scanner scanner = new Scanner(System.in);
         int W = scanner.nextInt();
         int H = scanner.nextInt();
+        int N = scanner.nextInt();
         int S = scanner.nextInt();
 
         if(S==0) {
