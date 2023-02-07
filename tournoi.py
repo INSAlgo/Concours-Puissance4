@@ -29,6 +29,7 @@ def printScores(scores: dict[str, int], nbGames, verbose) -> None:
 def main():
     width, height = WIDTH, HEIGHT
     verbose = True
+    rematches = 1
     nbPlayers = 2
     srcDir = SRCDIR
     args = list(sys.argv[1:])
@@ -38,6 +39,10 @@ def main():
         id = args.index("-p")
         args.pop(id)
         nbPlayers = int(args.pop(id))
+    if "-r" in args:
+        id = args.index("-r")
+        args.pop(id)
+        rematches = int(args.pop(id))
     if "-g" in args:
         id = args.index("-g")
         args.pop(id)
@@ -59,20 +64,21 @@ def main():
     for file in files:
         scores[file["filename"]] = 0
 
-    nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers)
+    nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers) * rematches
     iGame = 0
     if verbose:
         print(f"Tournament between {len(scores)} AIs")
     for playersCombinations in combinations(players, nbPlayers):
         for playersPermutations in permutations(playersCombinations):
-            iGame += 1
-            matchPlayers = list(playersPermutations)
-            winner, errors = game(matchPlayers, width, height)
-            if winner:
-                scores[str(winner)] += 1
-            if verbose:
-                print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
-                renderEnd(winner, errors)
+            for _ in range(rematches):
+                iGame += 1
+                matchPlayers = list(playersPermutations)
+                winner, errors = game(matchPlayers, width, height)
+                if winner:
+                    scores[str(winner)] += 1
+                if verbose:
+                    print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
+                    renderEnd(winner, errors)
 
     printScores(scores, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
