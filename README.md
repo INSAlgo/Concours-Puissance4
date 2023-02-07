@@ -25,15 +25,11 @@ Sur une première ligne, `W H N S` des entiers séparés par des espaces avec
  - N : nombre de joueurs. Pour le concours, on aura toujours N=2, mais vous pouvez supporter des parties multijoueurs si ça vous amuse
  - S : (start) le tour de début de votre programme (1 ou 2)
 
-Si S=1, votre programme commence, il ne doit pas lire plus d'input 
-et doit afficher son coup : la colonne K avec 1<=K<=M.
-Si S=2, il attend d'abord que le premier joueur joue
-
 Votre programme doit ensuite supporter une boucle de jeu :
- - Lire le coup de votre adversaire : un entier `M` avec 0<=M<W : la colonne dans laquelle l'adversaire a joué.
- - Votre programme doit ensuite afficher son coup : la colonne `K` avec 0<=K<W.
+ - Lire le coup de votre adversaire : un entier `M` avec 0 <= M < W, la colonne dans laquelle l'adversaire a joué
+ - Afficher son coup : la colonne `K` avec 0 <= K < W
 
- Si S=1, votre programme doit commence en premier, donc affiche son coup. Si S=2, il doit d'abord lire le coup de l'adversaire
+ Si S = 1, votre programme doit commence en premier, donc affiche son coup. Si S=2, il doit d'abord lire le coup de l'adversaire
 
 Pour permettre le debug, les sorties commençant par `>` seront transmises à l'écran en étant ignorées par le programme.
 
