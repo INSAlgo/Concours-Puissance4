@@ -223,6 +223,22 @@ def game(players, width, height, verbose=False):
     winner = players[turn % len(players)]
     return (winner, errors)
 
+def renderEnd(winner, errors, verbose=False):
+    if verbose:
+        if winner:
+            print(f"{winner.pprint()} won")
+        else:
+            print("Draw")
+    else:
+        if winner:
+            print(winner, end="")
+        else:
+            print("draw", end="")
+        if errors:
+            print(f" ({', '.join((f'{player}: {error}' for player, error in errors.items()))})")
+        else:
+            print()
+
 def main():
     args = list(sys.argv[1:])
     verbose = True
@@ -246,9 +262,8 @@ def main():
         players.append(AI(args.pop(0)))
     while len(players) < nbPlayers:
         players.append(User())
-    winner = game(players, width, height, verbose)
-    if not verbose and winner:
-        print(winner)
+    winner, errors = game(players, width, height, verbose)
+    renderEnd(winner, errors, verbose)
 
 
 if __name__ == "__main__":
