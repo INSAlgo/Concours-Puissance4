@@ -80,7 +80,7 @@ class AI(Player):
         extension = path.splitext(progPath)[1]
         match extension:
             case ".py":
-                return f"python {progPath}"
+                return f"python3 {progPath}"
             case ".js":
                 return f"node {progPath}"
             case ".class":
