@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from typing import Callable
 import sys
 from abc import ABC, abstractmethod
 from os import path
@@ -53,7 +54,7 @@ class Player(ABC):
 
 class User(Player):
 
-    def __init__(self, ask_func: function = None):
+    def __init__(self, ask_func: Callable[[list[list[int]]], str] = None):
         super().__init__()
         self.ask_func = ask_func
 
@@ -108,10 +109,6 @@ class AI(Player):
         if not system() == "Windows":
             self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
-
-    def loseGame(self, verbose):
-        if verbose: print(f"{self.pprint()} is eliminated")
-        self.prog.close()
 
     def askMove(self, board, verbose):
         try:
@@ -225,7 +222,10 @@ def renderEnd(winner, errors, verbose=False):
             print()
 
 def game(players: list[User | AI], width, height, verbose=False, discord=False):
-    if discord : log = []
+    if discord :
+        log = []
+    else :
+        log = None
 
     # init
     players = list(players)
@@ -243,7 +243,7 @@ def game(players: list[User | AI], width, height, verbose=False, discord=False):
         # displaying board :
         if verbose or discord :
             board_disp = display(board, verbose)
-            log += board_disp
+            if discord : log += board_disp
         
         # getting player output :
         userInput, error = None, None
@@ -252,11 +252,18 @@ def game(players: list[User | AI], width, height, verbose=False, discord=False):
             if isinstance(player, AI):
                 break
         
+        # logging move :
+        if discord :
+            line = f"Player {player.no} played on column {userInput[0]}"
+            log.append(line)
+        
         # saving eventual error
         if error:
             if isinstance(player, AI):
-                player.loseGame(verbose)
                 errors[player.no] = error
+                line = f"{player.pprint()} is eliminated"
+                if discord : log.append(line)
+                print(line)
             players.remove(player)
             continue
 
@@ -271,17 +278,17 @@ def game(players: list[User | AI], width, height, verbose=False, discord=False):
         if checkWin(board, player.no):
             if verbose or discord :
                 board_disp = display(board, verbose)
-                log += board_disp
+                if discord : log += board_disp
             break
         elif checkDraw(board):
             if verbose or discord :
                 board_disp = display(board, verbose)
-                log += board_disp
+                if discord : log += board_disp
             return (None, errors)
         turn += 1
     
     winner = players[turn % len(players)]
-    return (winner, errors)
+    return (winner, errors, log)
 
 def main():
     args = list(sys.argv[1:])
@@ -306,7 +313,7 @@ def main():
         players.append(AI(args.pop(0)))
     while len(players) < nbPlayers:
         players.append(User())
-    winner, errors = game(players, width, height, verbose)
+    winner, errors, _ = game(players, width, height, verbose)
     renderEnd(winner, errors, verbose)
 
 

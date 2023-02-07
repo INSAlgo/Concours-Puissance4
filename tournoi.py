@@ -7,7 +7,7 @@ import subprocess
 from math import factorial
 
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
-SRCDIR = "ai"
+SRCDIR = "test-ai"
 
 def explore(dirname: str) -> list[dict[str, str]]:
     path_to_files = list()
@@ -60,6 +60,7 @@ def main():
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths if not name.startswith(".")]
     nbAIs = len(players)
+    print(nbAIs)
     scores = dict()
     for file in files:
         scores[file["filename"]] = 0
@@ -73,7 +74,7 @@ def main():
             for _ in range(rematches):
                 iGame += 1
                 matchPlayers = list(playersPermutations)
-                winner, errors = game(matchPlayers, width, height)
+                winner, errors, _ = game(matchPlayers, width, height)
                 if winner:
                     scores[str(winner)] += 1
                 if verbose:
