@@ -10,7 +10,7 @@ if system() == "Windows":
     from pexpect.popen_spawn import PopenSpawn as spawn
 else :
     from pexpect import spawn
-from pexpect import TIMEOUT
+from pexpect import TIMEOUT, run
 
 WIDTH = 7
 HEIGHT = 6
@@ -72,7 +72,7 @@ class User(Player):
 class AI(Player):
 
     @staticmethod
-    def prepareCommand(progPath):
+    def prepareCommand(progPath, progName):
         if not path.exists(progPath):
             print(f"File {progPath} not found\n")
             sys.exit(1)
@@ -84,6 +84,9 @@ class AI(Player):
                 return f"node {progPath}"
             case ".class":
                 return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
+            case ".cpp":
+                run(f"g++ {progPath} -o {progName}.out")
+                return f"./{progName}.out"
             case _:
                 return f"./{progPath}"
 
@@ -91,7 +94,7 @@ class AI(Player):
         super().__init__()
         self.progPath = progPath
         self.progName = path.splitext(path.basename(progPath))[0]
-        self.command = AI.prepareCommand(self.progPath);
+        self.command = AI.prepareCommand(self.progPath, self.progName);
 
     def startGame(self, no, width, height, nbPlayers):
         super().startGame(no, width, height, nbPlayers)
@@ -107,7 +110,12 @@ class AI(Player):
 
     def askMove(self, board, verbose):
         try:
-            progInput = self.prog.readline().decode('ascii').strip()
+            while True:
+                progInput = self.prog.readline().decode('ascii').strip()
+                if progInput.startswith(">") and verbose:
+                    print(f"{self.pprint()} {progInput}")
+                else:
+                    break
             if verbose:
                 print(f"Column for {self.pprint()} : {progInput}")
         except TIMEOUT:
