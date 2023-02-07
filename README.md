@@ -35,21 +35,15 @@ Pour permettre le debug, les sorties commençant par `>` seront transmises à l'
 
 ## Tester un programme en local
 
-Récupérez le script [puissance4.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/puissance4.py) et installez ses dépendances : `pip install pexpect`. Ce script fournit un certain nombre d'outils pour tester et debugger votre programme.
+Récupérez le script [puissance4.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/puissance4.py) et installez ses dépendances : `pip install pexpect`. Ce script fournit un certain nombre d'outils pour tester et debugger votre programme :
 
 `python puissance4.py [OPTIONS] [prog1, prog2, prog3, ..., progN]`
 
-Jouer au jeu de base, sans IAs :
-`python puissance4.py`
-
-Jouer contre votre IA :
-`python puissance4.py prog1`
-
-Partie entre 2 IAs :
-`python puissance4.py prog1 prog2`
-
-Partie de l'IA contre elle-même :
-`python puissance4.py prog1 prog1`
+Exemples :
+- partie entre deux joueurs, sans IAs : `python puissance4.py`
+- partie contre votre IA : `python puissance4.py prog1`
+- partie entre 2 IAs : `python puissance4.py prog1 prog2`
+- partie de l'IA contre elle-même : `python puissance4.py prog1 prog1`
 
 Les options sont :
   - `-s` : mode silencieux
@@ -57,12 +51,13 @@ Les options sont :
   - `-p N` (par défaut, N = 2) : nombre de joueurs
 
 Un exemple plus compliqué : partie à 5 joueurs dont 2 IAs et 3 humains sur une grille 20x20 :
+
 `python puissance4.py -g 20 20 -p 5 prog1 prog2`
 
 Les programmes acceptés sont :
  - les scripts Python `.py`
  - les scripts JavaScript `.js`
- - les classes java compilées : `.class`
+ - les classes java compilées `.class`
  - Les exécutables compilés (C, C++, ...)
 
 # Le concours
