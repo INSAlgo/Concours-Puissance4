@@ -5,7 +5,7 @@ import sys
 from itertools import combinations, permutations
 import subprocess
 
-from puissance4 import game, AI, WIDTH, HEIGHT
+from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
 
 
 def explore(dirname: str) -> list[dict[str, str]]:
@@ -62,18 +62,10 @@ def main():
                 scores[str(winner)] += 1
             if verbose:
                 print(f"{nbGames}. {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
-                if winner:
-                    print(winner, end="")
-                else:
-                    print("draw", end="")
-                if errors:
-                    print(f" ({', '.join((f'{player}: {error}' for player, error in errors.items()))})")
-                else:
-                    print()
-
+                renderEnd(winner, errors)
 
     printScores(scores, nbGames, nbPlayers, verbose)
-    subprocess.run(['make', 'clean'], capture_output=True)
+    subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':
     main()

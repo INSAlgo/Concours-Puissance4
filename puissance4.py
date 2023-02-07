@@ -10,7 +10,7 @@ if system() == "Windows":
     from pexpect.popen_spawn import PopenSpawn as spawn
 else :
     from pexpect import spawn
-from pexpect import TIMEOUT
+from pexpect import TIMEOUT, run
 
 WIDTH = 7
 HEIGHT = 6
@@ -72,7 +72,7 @@ class User(Player):
 class AI(Player):
 
     @staticmethod
-    def prepareCommand(progPath):
+    def prepareCommand(progPath, progName):
         if not path.exists(progPath):
             print(f"File {progPath} not found\n")
             sys.exit(1)
@@ -84,6 +84,9 @@ class AI(Player):
                 return f"node {progPath}"
             case ".class":
                 return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
+            case ".cpp":
+                run(f"g++ {progPath} -o {progName}.out")
+                return f"./{progName}.out"
             case _:
                 return f"./{progPath}"
 
@@ -91,13 +94,14 @@ class AI(Player):
         super().__init__()
         self.progPath = progPath
         self.progName = path.splitext(path.basename(progPath))[0]
-        self.command = AI.prepareCommand(self.progPath);
+        self.command = AI.prepareCommand(self.progPath, self.progName);
 
     def startGame(self, no, width, height, nbPlayers):
         super().startGame(no, width, height, nbPlayers)
         self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
         self.prog.delaybeforesend = None
-        self.prog.setecho(False)
+        if not system() == "Windows":
+            self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
 
     def loseGame(self, verbose):
@@ -105,17 +109,20 @@ class AI(Player):
         self.prog.close()
 
     def askMove(self, board, verbose):
-        if verbose:
-            print(f"Column for {self.pprint()} : ", end="")
         try:
-            progInput = self.prog.readline().decode('ascii').strip()
+            while True:
+                progInput = self.prog.readline().decode('ascii').strip()
+                if progInput.startswith(">"):
+                    if verbose:
+                        print(f"{self.pprint()} {progInput}")
+                else:
+                    break
+            if verbose:
+                print(f"Column for {self.pprint()} : {progInput}")
         except TIMEOUT:
             if verbose:
-                print()
-                print("Program took too long")
+                print(f"{self.pprint()} took too long (over {TIMEOUT_LENGTH}s)")
             return (None, "timeout")
-        if verbose:
-            print(progInput)
         return User.sanithize(board, progInput, verbose)
 
     def tellLastMove(self, x):
@@ -176,12 +183,21 @@ def fallHeight(board, x):
         y -= 1
     return y
 
-
-def endMessage(winner=None):
-    if winner:
-        print(f"{winner} wins")
+def renderEnd(winner, errors, verbose=False):
+    if verbose:
+        if winner:
+            print(f"{winner.pprint()} won")
+        else:
+            print("Draw")
     else:
-        print("Draw")
+        if winner:
+            print(winner, end="")
+        else:
+            print("draw", end="")
+        if errors:
+            print(f" ({', '.join((f'{player}: {error}' for player, error in errors.items()))})")
+        else:
+            print()
 
 def game(players, width, height, verbose=False):
     players = list(players)
@@ -216,8 +232,6 @@ def game(players, width, height, verbose=False):
                 display(board)
             break
         elif checkDraw(board):
-            if verbose:
-                endMessage()
             return (None, errors)
         turn += 1
     winner = players[turn % len(players)]
@@ -246,9 +260,8 @@ def main():
         players.append(AI(args.pop(0)))
     while len(players) < nbPlayers:
         players.append(User())
-    winner = game(players, width, height, verbose)
-    if not verbose and winner:
-        print(winner)
+    winner, errors = game(players, width, height, verbose)
+    renderEnd(winner, errors, verbose)
 
 
 if __name__ == "__main__":
