@@ -37,7 +37,7 @@ Un exemple d'IA (pas très intelligente) en Python est donné : [template.py](ht
 
 ## Tester un programme en local
 
-Récupérez le script [puissance4.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/puissance4.py) et installez ses dépendances : `pip install pexpect`. Ce script fournit un certain nombre d'outils pour tester et debugger votre programme :
+Récupérez le script [puissance4.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/puissance4.py) et installez ses dépendances : `pip install pexpect`. (Pour ce faire, vous pouvez utiliser le fichier [requirements.txt](https://github.com/INSAlgo/Concours-Puissance4/blob/main/requirements.txt) si vous connaissez). Ce script fournit un certain nombre d'outils pour tester et debugger votre programme :
 
 `python puissance4.py [OPTIONS] [prog1, prog2, prog3, ..., progN]`
 

@@ -10,7 +10,8 @@ if system() == "Windows":
     from pexpect.popen_spawn import PopenSpawn as spawn
 else :
     from pexpect import spawn
-from pexpect import TIMEOUT, run
+from pexpect import TIMEOUT
+import subprocess
 
 WIDTH = 7
 HEIGHT = 6
@@ -85,7 +86,7 @@ class AI(Player):
             case ".class":
                 return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
             case ".cpp":
-                run(f"g++ {progPath} -o {progName}.out")
+                subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
                 return f"./{progName}.out"
             case _:
                 return f"./{progPath}"
