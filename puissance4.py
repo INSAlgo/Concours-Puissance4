@@ -112,8 +112,9 @@ class AI(Player):
         try:
             while True:
                 progInput = self.prog.readline().decode('ascii').strip()
-                if progInput.startswith(">") and verbose:
-                    print(f"{self.pprint()} {progInput}")
+                if progInput.startswith(">"):
+                    if verbose:
+                        print(f"{self.pprint()} {progInput}")
                 else:
                     break
             if verbose:
