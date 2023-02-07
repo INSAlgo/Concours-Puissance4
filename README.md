@@ -1,29 +1,41 @@
 # Concours Puissance 4
 
-Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo !
+Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo ! Sur le mois de février, vous pourrez développer une petite IA capable jouer au jeu. A la fin, toutes les IAs vont se rencontrer, et les meilleures remporteront des prix !
+
+```plaintext
+┌───────────────┐
+│ . . . . . . . │
+│ . . . . . . . │
+│ . 2 . 1 . . . │
+│ 2 1 1 1 . . . │
+│ 2 1 1 2 2 1 2 │
+│ 2 2 1 1 2 1 2 │
+└───────────────┘
+```
 
 # Programme
 
 ## Spécification
 
-Il va faloir créer un programme capable de jouer au puissance 4 !
-La communication avec ce programme sera automatisée. Les entrées se présentent sous cette forme :
+La communication avec votre programme est automatisée. Les entrées se présentent sous cette forme :
 
-Sur une première ligne, les entiers W, H, N, S séparés par des espaces avec
+Sur une première ligne, `W H N S` des eniters séparés par des espaces avec
  - W : (width) largeur de la grille
  - H : (height) hauteur de la grille
  - N : nombre de joueurs. Pour le concours, on aura toujours N=2, mais vous pouvez supporter des parties multijoueurs si ça vous amuse
- - S : (start) le tour de début de votre programme
+ - S : (start) le tour de début de votre programme (1 ou 2)
 
-Si S = 1, votre programme commence, il ne doit pas lire plus d'input 
+Si S=1, votre programme commence, il ne doit pas lire plus d'input 
 et doit afficher son coup : la colonne K avec 1<=K<=M.
-Si S = 2, il attend d'abord que le premier joueur joue
+Si S=2, il attend d'abord que le premier joueur joue
 
 Votre programme doit ensuite supporter une boucle de jeu :
- - Lire le coup de votre adversaire : un entier M avec 1<=M<=W : la colonne dans laquelle l'adversaire a joué.
- - Votre programme doit ensuite afficher son coup : la colonne K avec 1<=K<=M.
+ - Lire le coup de votre adversaire : un entier `M` avec 0<=M<W : la colonne dans laquelle l'adversaire a joué.
+ - Votre programme doit ensuite afficher son coup : la colonne `K` avec 0<=K<W.
 
-Pour permettre un debug plus précis, les sorties commençant par `>` seront transmises à l'écran en étant ignorées par le programme.
+ Si S=1, votre programme doit commence en premier, donc affiche son coup. Si S=2, il doit d'abord lire le coup de l'adversaire
+
+Pour permettre le debug, les sorties commençant par `>` seront transmises à l'écran en étant ignorées par le programme.
 
 ## Tester un programme en local
 
@@ -65,20 +77,11 @@ Partie à 5 joueurs dont 2 IAs et 3 humains sur une grille 20x20 :
 
 ## Déroulement du concours
 
-Pour être tenu au courant du déroulement du concours, vous pouvez rejoindre le [Discord d'INSAlgo](https://discord.gg/fGTkMQetSC)
+Pour être tenu au courant du déroulement du concours, vous pouvez rejoindre le [Discord d'INSAlgo](https://discord.gg/fGTkMQetSC). La phase de développement des IA qui s'étent jusqu'au 21 février. Avant cette date, les participants pourront soumettre leur code.
 
-Le concours se compose de la phase de développement des IA qui s'étent jusqu'au 21 février 2023 à 18h
+A la fin, le code participera à un tournoi qui fera se rencontrer toutes les IA. Chaque IA se battra 2 fois contre chacune des autres IA, une fois en commencant, une fois en laissant l'adversaire commencer. Une victoire rapporte un point, une défaire rapporte 0 points. Une égalité ne fait pas gagner de point. Un temps de réponse trop long ou un coup invalide fait perdre le match au programme.
 
-Avant cette date, les participants pourront soumettre leur code.
-
-A la fin, le code participera à un tournoi qui fera se rencontrer toutes les IA.
-
-Chaque IA se battra 2 fois contre chacune des autres IA, une fois en commencant, une fois en laissant l'adversaire commencer.
-Une victoire rapporte un point, une défaire rapporte 0 points. Une égalité ne fait pas gagner de point.
-
-Une temps de réponse trop long ou un coup invalide fait perdre le match au programme.
-
-# Participer au concours
+## Participer au concours
 
 Pour participer au concours, vous devez être étudiant de l'INSA Lyon à date de fin du concours le 21 février, et pas membre du bureau d'INSAlgo.
 
@@ -100,7 +103,7 @@ Si vous souhaitez participer avec un autre langage, contactez un membre de burea
 
 # Regles du concours
 
-Les soumissions se terminent le 21 février à 18h.
+Les soumissions se terminent le 21 février 2023 à 18h.
 
 Les soumissions doivent être ORIGINALES, c'est-à-dire ne pas implémenter une solution toute prête trouvée sur internet.
 
