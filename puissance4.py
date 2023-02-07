@@ -177,12 +177,21 @@ def fallHeight(board, x):
         y -= 1
     return y
 
-
-def endMessage(winner=None):
-    if winner:
-        print(f"{winner} wins")
+def renderEnd(winner, errors, verbose=False):
+    if verbose:
+        if winner:
+            print(f"{winner.pprint()} won")
+        else:
+            print("Draw")
     else:
-        print("Draw")
+        if winner:
+            print(winner, end="")
+        else:
+            print("draw", end="")
+        if errors:
+            print(f" ({', '.join((f'{player}: {error}' for player, error in errors.items()))})")
+        else:
+            print()
 
 def game(players, width, height, verbose=False):
     players = list(players)
@@ -217,28 +226,10 @@ def game(players, width, height, verbose=False):
                 display(board)
             break
         elif checkDraw(board):
-            if verbose:
-                endMessage()
             return (None, errors)
         turn += 1
     winner = players[turn % len(players)]
     return (winner, errors)
-
-def renderEnd(winner, errors, verbose=False):
-    if verbose:
-        if winner:
-            print(f"{winner.pprint()} won")
-        else:
-            print("Draw")
-    else:
-        if winner:
-            print(winner, end="")
-        else:
-            print("draw", end="")
-        if errors:
-            print(f" ({', '.join((f'{player}: {error}' for player, error in errors.items()))})")
-        else:
-            print()
 
 def main():
     args = list(sys.argv[1:])
