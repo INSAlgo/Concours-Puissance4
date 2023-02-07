@@ -68,7 +68,7 @@ Les programmes acceptés sont :
 
 Pour être tenu au courant du déroulement du concours, venez sur le [Discord d'INSAlgo](https://discord.gg/fGTkMQetSC). La phase de développement des IA s'étent jusqu'au 21 février, pendant laquelle les participants peuvent soumettre leur code.
 
-A la fin, votre programme participera à un tournoi qui fera se rencontrer toutes les IA (avec le script [tournoi.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/tournoi.py)). Chaque IA se battra 2 fois contre chacune des autres IA, une fois en commencant, une fois en laissant l'adversaire commencer. Une victoire rapporte un point, une défaite rapporte 0 point. Une égalité ne fait pas gagner de point. Un temps de réponse trop long ou un coup invalide fait perdre le match au programme.
+A la fin, votre programme participera à un tournoi qui fera se rencontrer toutes les IA (avec le script [tournoi.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/tournoi.py)). Chaque IA se battra 2 fois contre chacune des autres IA, une fois en commencant, une fois en laissant l'adversaire commencer. Une victoire rapporte un point, une défaite ou une égalité ne rapporte pas de point. Un temps de réponse trop long ou un coup invalide fait perdre le match au programme.
 
 ## Participer au concours
 
