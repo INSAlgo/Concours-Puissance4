@@ -37,7 +37,7 @@ class Player(ABC):
     @staticmethod
     def sanithize(board, userInput, verbose=False):
         try:
-            x = int(userInput) - 1
+            x = int(userInput)
         except ValueError:
             if verbose: print("Invalid input")
             return (None, "invalid input")
@@ -111,7 +111,13 @@ class AI(Player):
     def askMove(self, board, verbose):
         try:
             while True:
-                progInput = self.prog.readline().decode('ascii').strip()
+                progInput = self.prog.readline().decode("ascii").strip()
+                if progInput.startswith("Traceback"):
+                    if verbose:
+                        print()
+                        print(progInput)
+                        print(self.prog.read().decode("ascii"))
+                    return (None, "error")
                 if progInput.startswith(">"):
                     if verbose:
                         print(f"{self.pprint()} {progInput}")
@@ -121,7 +127,7 @@ class AI(Player):
                 print(f"Column for {self.pprint()} : {progInput}")
         except TIMEOUT:
             if verbose:
-                print(f"{self.pprint()} took too long (over {TIMEOUT_LENGTH}s)")
+                print(f"{self.pprint()} did not respond in time (over {TIMEOUT_LENGTH}s)")
             return (None, "timeout")
         return User.sanithize(board, progInput, verbose)
 
@@ -163,7 +169,7 @@ def checkDraw(board):
 def display(board):
     width, height = len(board), len(board[0])
     print()
-    line = "  " + ' '.join(str((x+1)%10) for x in range(width)) + "  "
+    line = "  " + ' '.join(str(x%10) for x in range(width)) + "  "
     print(line)
     line = '┌' + '─' * (width * 2 + 1) + '┐'
     print(line)
@@ -174,11 +180,11 @@ def display(board):
         print(line)
     line = '└' + '─' * (width * 2 + 1) + '┘'
     print(line)
-    line = "  " + ' '.join(str((x+1)%10) for x in range(width)) + "  "
+    line = "  " + ' '.join(str(x%10) for x in range(width)) + "  "
     print(line)
 
 def fallHeight(board, x):
-    y = len(board[0])
+    y = len(board[x])
     while board[x][y - 1] == 0 and y > 0:
         y -= 1
     return y
@@ -232,6 +238,8 @@ def game(players, width, height, verbose=False):
                 display(board)
             break
         elif checkDraw(board):
+            if verbose :
+                display(board)
             return (None, errors)
         turn += 1
     winner = players[turn % len(players)]

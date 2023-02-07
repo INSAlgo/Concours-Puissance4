@@ -1,11 +1,11 @@
 W, H, N, S = map(int, input().split())
 
-t = 0
+p = 0
 x = 0
 while True:
-    t = t % N + 1
-    x = x % W + 1
-    if t == S:
+    p = p % N + 1
+    x = (x + 1) % W
+    if p == S:
         print(x)
     else:
         input()

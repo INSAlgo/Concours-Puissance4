@@ -9,12 +9,12 @@ class TestJava {
         int N = scanner.nextInt();
         int S = scanner.nextInt();
 
-        if(S == 2) {
+        if (S == 2) {
             scanner.nextLine();
         }
 
-        while(true) {
-            System.out.println(1);
+        while (true) {
+            System.out.println(0);
             scanner.nextLine();
         }
     }

@@ -53,7 +53,7 @@ def main():
     subprocess.run(['make', f"SRCDIR={srcDir}"], capture_output=True)
     files = explore("out")
     paths = [file["path"] for file in files]
-    players = [AI(name) for name in paths]
+    players = [AI(name) for name in paths if not name.startswith(".")]
     nbAIs = len(players)
     scores = dict()
     for file in files:
