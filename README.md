@@ -1,4 +1,4 @@
-# Concours Puissance 4
+# Concours Puissance 4 d'INSAlgo
 
 Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo ! Sur le mois de février, vous pourrez développer une petite IA capable jouer au jeu. A la fin, toutes les IAs vont se rencontrer, et les meilleures remporteront des prix !
 
@@ -19,7 +19,7 @@ Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo ! Sur le mois de févri
 
 La communication avec votre programme est automatisée. Les entrées se présentent sous cette forme :
 
-Sur une première ligne, `W H N S` des eniters séparés par des espaces avec
+Sur une première ligne, `W H N S` des entiers séparés par des espaces avec
  - W : (width) largeur de la grille
  - H : (height) hauteur de la grille
  - N : nombre de joueurs. Pour le concours, on aura toujours N=2, mais vous pouvez supporter des parties multijoueurs si ça vous amuse
@@ -101,7 +101,7 @@ Les langages acceptés sont :
 
 Si vous souhaitez participer avec un autre langage, contactez un membre de bureau d'INSAlgo sur le serveur Discord.
 
-# Regles du concours
+## Règles du concours
 
 Les soumissions se terminent le 21 février 2023 à 18h.
 
