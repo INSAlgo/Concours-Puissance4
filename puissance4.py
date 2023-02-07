@@ -83,7 +83,7 @@ class AI(Player):
             case ".js":
                 return f"node {progPath}"
             case ".class":
-                return f"java {path.splitext(progPath)[0]}"
+                return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
             case _:
                 return f"./{progPath}"
 
@@ -97,7 +97,8 @@ class AI(Player):
         super().startGame(no, width, height, nbPlayers)
         self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
         self.prog.delaybeforesend = None
-        self.prog.setecho(False)
+        if not system() == "Windows":
+            self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
 
     def loseGame(self, verbose):
