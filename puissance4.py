@@ -106,17 +106,14 @@ class AI(Player):
         self.prog.close()
 
     def askMove(self, board, verbose):
-        if verbose:
-            print(f"Column for {self.pprint()} : ", end="")
         try:
             progInput = self.prog.readline().decode('ascii').strip()
+            if verbose:
+                print(f"Column for {self.pprint()} : {progInput}")
         except TIMEOUT:
             if verbose:
-                print()
-                print("Program took too long")
+                print(f"{self.pprint()} took too long (over {TIMEOUT_LENGTH}s)")
             return (None, "timeout")
-        if verbose:
-            print(progInput)
         return User.sanithize(board, progInput, verbose)
 
     def tellLastMove(self, x):
