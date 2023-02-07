@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 
-#uwu
-
 import sys
 from abc import ABC, abstractmethod
 from os import path
+import subprocess
 
-# Conditional import :
+# Conditional import for pexpect for cross-OS :
 from platform import system
 if system() == "Windows":
     from pexpect.popen_spawn import PopenSpawn as spawn
 else :
     from pexpect import spawn
 from pexpect import TIMEOUT
-import subprocess
 
 WIDTH = 7
 HEIGHT = 6
@@ -55,13 +53,17 @@ class Player(ABC):
 
 class User(Player):
 
-    def __init__(self):
+    def __init__(self, ask_func: function = None):
         super().__init__()
+        self.ask_func = ask_func
 
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
     def askMove(self, board, verbose):
+        if self.ask_func is not None :
+            return User.sanithize(board, self.ask_func(board), verbose)
+        
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
         try:
@@ -97,7 +99,7 @@ class AI(Player):
         super().__init__()
         self.progPath = progPath
         self.progName = path.splitext(path.basename(progPath))[0]
-        self.command = AI.prepareCommand(self.progPath, self.progName);
+        self.command = AI.prepareCommand(self.progPath, self.progName)
 
     def startGame(self, no, width, height, nbPlayers):
         super().startGame(no, width, height, nbPlayers)
@@ -169,22 +171,36 @@ def checkDraw(board):
             return False
     return True
 
-def display(board):
+def display(board, verbose=True) -> list[str]:
     width, height = len(board), len(board[0])
-    print()
+
+    lines = [""]
+    if verbose : print()
+
     line = "  " + ' '.join(str(x%10) for x in range(width)) + "  "
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
     line = '┌' + '─' * (width * 2 + 1) + '┐'
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
     for y in range(height - 1, -1, -1) :
         line = "│ "
         raw_line = ' '.join(str(board[x][y]) for x in range(width))
         line += raw_line.replace('0', '.') + " │"
-        print(line)
+        lines.append(line)
+        if verbose : print(line)
+    
     line = '└' + '─' * (width * 2 + 1) + '┘'
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
     line = "  " + ' '.join(str(x%10) for x in range(width)) + "  "
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
+    return lines
 
 def fallHeight(board, x):
     y = len(board[x])
@@ -208,7 +224,10 @@ def renderEnd(winner, errors, verbose=False):
         else:
             print()
 
-def game(players, width, height, verbose=False):
+def game(players: list[User | AI], width, height, verbose=False, discord=False):
+    if discord : log = []
+
+    # init
     players = list(players)
     errors = {}
     for i, player in enumerate(players):
@@ -216,35 +235,51 @@ def game(players, width, height, verbose=False):
     turn = 0
     player = players[turn]
     board = [[0 for _ in range(height)] for _ in range(width)]
+
+    # game loop
     while len(players) > 1:
         player = players[turn % len(players)]
-        if verbose:
-            display(board)
+
+        # displaying board :
+        if verbose or discord :
+            board_disp = display(board, verbose)
+            log += board_disp
+        
+        # getting player output :
         userInput, error = None, None
         while not userInput:
             userInput, error = player.askMove(board, verbose)
             if isinstance(player, AI):
                 break
+        
+        # saving eventual error
         if error:
             if isinstance(player, AI):
                 player.loseGame(verbose)
-                errors[player] = error
+                errors[player.no] = error
             players.remove(player)
             continue
+
+        # giving last move info to other players :
         x, y = userInput
         board[x][y] = player.no
         for otherPlayer in players:
             if otherPlayer != player and isinstance(otherPlayer, AI):
                 otherPlayer.tellLastMove(x)
+        
+        # end check :
         if checkWin(board, player.no):
-            if verbose :
-                display(board)
+            if verbose or discord :
+                board_disp = display(board, verbose)
+                log += board_disp
             break
         elif checkDraw(board):
-            if verbose :
-                display(board)
+            if verbose or discord :
+                board_disp = display(board, verbose)
+                log += board_disp
             return (None, errors)
         turn += 1
+    
     winner = players[turn % len(players)]
     return (winner, errors)
 
