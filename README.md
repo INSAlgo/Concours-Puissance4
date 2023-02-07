@@ -1,8 +1,10 @@
-# Introduction
+# Concours Puissance 4
 
 Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo !
 
-# Spécifications du programme
+# Programme
+
+## Spécification
 
 Il va faloir créer un programme capable de jouer au puissance 4 !
 La communication avec ce programme sera automatisée. Les entrées se présentent sous cette forme :
@@ -23,9 +25,9 @@ Votre programme doit ensuite supporter une boucle de jeu :
 
 Pour permettre un debug plus précis, les sorties commençant par `>` seront transmises à l'écran en étant ignorées par le programme.
 
-# Tester un programme en local
+## Tester un programme en local
 
-Pour installer les dépendances du programme : `pip install -r requirements.txt`
+Récupérez le programme puissance4.py et installez ses dépendances : `pip install pexpect`
 
 Le programme nécéssite java pour exécuter les `.class` et node pour executer les `.js`.
 
@@ -80,11 +82,11 @@ Une temps de réponse trop long ou un coup invalide fait perdre le match au prog
 
 Pour participer au concours, vous devez être étudiant de l'INSA Lyon à date de fin du concours le 21 février, et pas membre du bureau d'INSAlgo.
 
-Les soumissions sont faites par message privé au bot 1048680176118136942.
+Les soumissions sont faites par message privé au bot Dijkstra-Chan du serveur discord (1048680176118136942).
 Pour soumettre un code, envoyez la commande `!p4 submit` avec votre fichier attaché dans le même message.
-Donner à votre programme le nom de votre pseudo.
+Donner comme nom à votre programme votre pseudo.
 
-Votre dernière soumission vous représentera lors du tournoi.
+Votre dernière soumission vous représentera lors du tournoi final.
 
 Pour le tournoi, transmettez votre code source et non un executable.
 Les langages acceptés sont :
@@ -102,21 +104,18 @@ Les soumissions se terminent le 21 février à 18h.
 
 Les soumissions doivent être ORIGINALES, c'est-à-dire ne pas implémenter une solution toute prête trouvée sur internet.
 
-Les organisateurs vérifieront le code avant de valider les gagnants, alors soyez honnêtes !
+Les organisateurs vérifieront le code avant de valider les gagnants, alors soyez honnêtes ! Pour rendre cette tache plus facile, écrivez autant que possible du code lisible et commenté.
 
 Il est autorisé de participer à plusieurs, danc ce cas, soumettez un seul programme pour le groupe.
 
-Les gains sont:
+Les prix sont:
  - 64€ pour le premier
  - 32€ pour le deuxième
  - 16€ pour le troisième
 
 Si un groupe gagne, la récompense est par GROUPE et non par PERSONNES.
 
-Si des égalités se présentent, les personnes/groupes à égalité se partageront la somme des gains.
+Si des égalités se présentent, les personnes/groupes à égalité se partageront la somme des prix.
 Ex :
-  - 1er : bob -> il gagne 64€
-  - 2e ex-aequo : alice et eve -> elles gagnent chacune (32+16)/2 = 24 €
-
-
-
+  - 1er : Bob -> il gagne 64€
+  - 2e ex-aequo : Alice et Eve -> elles gagnent chacune (32+16)/2 = 24 €
