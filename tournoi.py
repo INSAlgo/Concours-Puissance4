@@ -4,9 +4,10 @@ import os
 import sys
 from itertools import combinations, permutations
 import subprocess
+from math import factorial
 
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
-
+SRCDIR = "ai"
 
 def explore(dirname: str) -> list[dict[str, str]]:
     path_to_files = list()
@@ -18,19 +19,18 @@ def explore(dirname: str) -> list[dict[str, str]]:
             })
     return path_to_files
 
-def printScores(scores: dict[str, int], nbGames, nbPlayers, verbose) -> None:
+def printScores(scores: dict[str, int], nbGames, verbose) -> None:
     if verbose: print()
-    print(f"Results for {nbGames} games of {nbPlayers} players")
+    print(f"Results for {nbGames} games")
     result = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     for i, (name, score) in enumerate(result):
         print(f"{i+1}. {name} ({score})")
 
 def main():
-    subprocess.run(['make'], capture_output=True)
-    files = explore("out")
     width, height = WIDTH, HEIGHT
     verbose = True
     nbPlayers = 2
+    srcDir = SRCDIR
     args = list(sys.argv[1:])
     if "-s" in args:
         verbose = False
@@ -46,25 +46,35 @@ def main():
             height = int(args.pop(id))
         except (IndexError, ValueError):
             pass
+    if "-d" in args:
+        id = args.index("-d")
+        args.pop(id)
+        srcDir = args.pop(id)
+    subprocess.run(['make', f"SRCDIR={srcDir}"], capture_output=True)
+    files = explore("out")
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths]
+    nbAIs = len(players)
     scores = dict()
     for file in files:
         scores[file["filename"]] = 0
 
-    nbGames = 0
+    nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers)
+    iGame = 0
+    if verbose:
+        print(f"Tournament between {len(scores)} AIs")
     for playersCombinations in combinations(players, nbPlayers):
         for playersPermutations in permutations(playersCombinations):
-            nbGames += 1
+            iGame += 1
             matchPlayers = list(playersPermutations)
             winner, errors = game(matchPlayers, width, height)
             if winner:
                 scores[str(winner)] += 1
             if verbose:
-                print(f"{nbGames}. {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
+                print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
                 renderEnd(winner, errors)
 
-    printScores(scores, nbGames, nbPlayers, verbose)
+    printScores(scores, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':
