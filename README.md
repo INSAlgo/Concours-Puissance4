@@ -87,7 +87,7 @@ Si vous souhaitez participer avec un autre langage, contactez un membre de burea
 
 ## Règles du concours
 
-Pour participer au concours, vous devez être étudiant à l'INSA Lyon, et pas membre du bureau d'INSAlgo. Il est autorisé de participer à plusieurs, danc ce cas, soumettez un seul programme pour le groupe.
+Tous les étudiants de l'INSA Lyon peuvent participer, à l'exception des organisateurs. Il est autorisé de participer à plusieurs, danc ce cas, soumettez un seul programme pour le groupe.
 
 Les soumissions se terminent le 21 février 2023 à 18h.
 
