@@ -61,37 +61,39 @@ async def main():
         srcDir = args.pop(id)
     subprocess.run(['make', f"SRCDIR={srcDir}"], capture_output=True)
     files = explore("out")
-    paths = [file["path"] for file in files]
-    players = [AI(name) for name in paths if not name.startswith(".")]
-    nbAIs = len(players)
+    paths = [file["path"] for file in files if not file["path"].startswith(".")]
+    nbAIs = len(paths)
     scores = dict()
     for file in files:
         scores[file["filename"]] = 0
 
-    #nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers) * rematches
     iGame = 0
     if verbose:
         print(f"Tournament between {len(scores)} AIs")
 
     games = list()
+    all_match_players = list()
     
-    for playersCombinations in combinations(players, nbPlayers):
+    for playersCombinations in combinations(paths, nbPlayers):
         for playersPermutations in permutations(playersCombinations):
             for _ in range(rematches):
-                matchPlayers = list(playersPermutations)
+                matchPlayers = [AI(name) for name in playersPermutations]
+                all_match_players.append(matchPlayers)
                 games.append(game(matchPlayers, width, height))
+
+    nbGames = len(games)
 
     results = await asyncio.gather(*games)
 
-    for winner, error in results:
+    for (winner, errors), matchPlayers in zip(results, all_match_players):
         iGame += 1
         if winner:
             scores[str(winner)] += 1
-    #     if verbose:
-    #         print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
-    #         renderEnd(winner, errors)
+        if verbose:
+            print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
+            renderEnd(winner, errors)
 
-    #printScores(scores, 100, verbose)
+    printScores(scores, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':
