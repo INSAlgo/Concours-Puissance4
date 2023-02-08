@@ -266,7 +266,12 @@ def main():
         nbPlayers = int(args.pop(id))
     players = []
     while(args):
-        players.append(AI(args.pop(0)))
+        name = args.pop(0)
+        print(name)
+        if name == "user":
+            players.append(User())
+        else:
+            players.append(AI(name))
     while len(players) < nbPlayers:
         players.append(User())
     winner, errors = game(players, width, height, verbose)
