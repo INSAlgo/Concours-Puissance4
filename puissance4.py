@@ -150,7 +150,7 @@ def checkWin(board, no):
                     streak = 1
                     for i in range(1, 4):
                         nx, ny = x + dx * i, y + dy * i
-                        if nx >= width or ny >= height:
+                        if not (0 <= nx < width and 0 <= ny < height):
                             break
                         if board[nx][ny] == no:
                             streak += 1
