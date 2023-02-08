@@ -101,13 +101,12 @@ class AI(Player):
         super().startGame(no, width, height, nbPlayers)
         self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
         self.prog.delaybeforesend = None
-        if not system() == "Windows":
-            self.prog.setecho(False)
+        if system() != "Windows": self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
 
     def loseGame(self, verbose):
         if verbose: print(f"{self.pprint()} is eliminated")
-        self.prog.close()
+        if system() != "Windows": self.prog.close()
 
     def askMove(self, board, verbose):
         try:

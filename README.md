@@ -1,6 +1,6 @@
 # Concours Puissance 4 d'INSAlgo
 
-Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo ! Sur le mois de février, vous pourrez développer une petite IA capable jouer au jeu. À la fin, toutes les IA vont se rencontrer, et les meilleures remporteront des prix !
+Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo ! Sur le mois de février, vous pourrez développer une petite IA capable jouer au jeu, dans le langage de votre choix. À la fin, toutes les IA vont se rencontrer, et les meilleures remporteront des prix !
 
 ```plaintext
 ┌───────────────┐
