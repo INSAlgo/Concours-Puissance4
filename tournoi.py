@@ -6,6 +6,8 @@ from itertools import combinations, permutations
 import subprocess
 from math import factorial
 
+import asyncio
+
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
 SRCDIR = "ai"
 
@@ -26,7 +28,9 @@ def printScores(scores: dict[str, int], nbGames, verbose) -> None:
     for i, (name, score) in enumerate(result):
         print(f"{i+1}. {name} ({score})")
 
-def main():
+
+
+async def main():
     width, height = WIDTH, HEIGHT
     verbose = True
     rematches = 1
@@ -64,25 +68,32 @@ def main():
     for file in files:
         scores[file["filename"]] = 0
 
-    nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers) * rematches
+    #nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers) * rematches
     iGame = 0
     if verbose:
         print(f"Tournament between {len(scores)} AIs")
+
+    games = list()
+    
     for playersCombinations in combinations(players, nbPlayers):
         for playersPermutations in permutations(playersCombinations):
             for _ in range(rematches):
-                iGame += 1
                 matchPlayers = list(playersPermutations)
-                winner, errors = game(matchPlayers, width, height)
-                if winner:
-                    scores[str(winner)] += 1
-                if verbose:
-                    print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
-                    renderEnd(winner, errors)
+                games.append(game(matchPlayers, width, height))
 
-    printScores(scores, nbGames, verbose)
+    results = await asyncio.gather(*games)
+
+    for winner, error in results:
+        iGame += 1
+        if winner:
+            scores[str(winner)] += 1
+    #     if verbose:
+    #         print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
+    #         renderEnd(winner, errors)
+
+    #printScores(scores, 100, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
 

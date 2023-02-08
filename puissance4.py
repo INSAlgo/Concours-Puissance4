@@ -4,6 +4,8 @@ import sys
 from abc import ABC, abstractmethod
 from os import path
 
+import asyncio
+
 # Conditional import :
 from platform import system
 if system() == "Windows":
@@ -97,12 +99,19 @@ class AI(Player):
         self.progName = path.splitext(path.basename(progPath))[0]
         self.command = AI.prepareCommand(self.progPath, self.progName);
 
-    def startGame(self, no, width, height, nbPlayers):
+    async def startGame(self, no, width, height, nbPlayers):
         super().startGame(no, width, height, nbPlayers)
-        self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
+        result = await asyncio.gather(asyncio.get_event_loop().run_in_executor(
+            None,
+            self._spawn
+        ))
+        self.prog = result[0]
         self.prog.delaybeforesend = None
         if system() != "Windows": self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
+
+    def _spawn(self):
+        return spawn(self.command, timeout=TIMEOUT_LENGTH)
 
     def loseGame(self, verbose):
         if verbose: print(f"{self.pprint()} is eliminated")
@@ -205,11 +214,11 @@ def renderEnd(winner, errors, verbose=False):
         else:
             print()
 
-def game(players, width, height, verbose=False):
+async def game(players, width, height, verbose=False):
     players = list(players)
     errors = {}
-    for i, player in enumerate(players):
-        player.startGame(i+1, width, height, len(players))
+    starters = [player.startGame(i+1, width, height, len(players)) for i, player in enumerate(players)]
+    await asyncio.gather(*starters)
     turn = 0
     player = players[turn]
     board = [[0 for _ in range(height)] for _ in range(width)]
@@ -268,7 +277,7 @@ def main():
         players.append(AI(args.pop(0)))
     while len(players) < nbPlayers:
         players.append(User())
-    winner, errors = game(players, width, height, verbose)
+    winner, errors = asyncio.run(game(players, width, height, verbose))
     renderEnd(winner, errors, verbose)
 
 
