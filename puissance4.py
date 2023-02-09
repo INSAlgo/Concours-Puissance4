@@ -85,7 +85,7 @@ class AI(Player):
                 return f"node {progPath}"
             case ".class":
                 return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
-            case ".cpp":
+            case ".cpp" | ".c":
                 subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
                 return f"./{progName}.out"
             case _:
