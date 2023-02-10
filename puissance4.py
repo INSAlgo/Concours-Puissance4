@@ -166,7 +166,6 @@ def checkWin(board, no):
                         else:
                             break
                     if streak >= 4:
-                        print(f"win for p{no} at {x}, {y}")
                         return True
     return False
 
