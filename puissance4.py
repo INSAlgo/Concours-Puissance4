@@ -54,16 +54,20 @@ class Player(ABC):
 
 class User(Player):
 
-    def __init__(self, ask_func: Callable[[list[list[int]]], str] = None):
+    def __init__(self,
+            ask_func: Callable[[list[list[int]]], str] = None,
+            ask_user = None, ask_channel = None
+        ):
         super().__init__()
         self.ask_func = ask_func
+        self.ask_args = (ask_user, ask_channel)
 
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
     def askMove(self, board, verbose):
         if self.ask_func is not None :
-            return User.sanithize(board, self.ask_func(board), verbose)
+            return User.sanithize(board, self.ask_func(board, *self.ask_args), verbose)
         
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
