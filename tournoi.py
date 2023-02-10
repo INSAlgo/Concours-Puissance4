@@ -5,6 +5,7 @@ import sys
 from itertools import combinations, permutations
 import subprocess
 from math import factorial
+from asyncio import run
 
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
 SRCDIR = "test-ai"
@@ -26,7 +27,7 @@ def printScores(scores: dict[str, int], nbGames, verbose) -> None:
     for i, (name, score) in enumerate(result):
         print(f"{i+1}. {name} ({score})")
 
-def main():
+async def main():
     width, height = WIDTH, HEIGHT
     verbose = True
     rematches = 1
@@ -74,7 +75,8 @@ def main():
             for _ in range(rematches):
                 iGame += 1
                 matchPlayers = list(playersPermutations)
-                winner, errors, _ = game(matchPlayers, width, height)
+                res = await game(matchPlayers, width, height)
+                winner, errors, _  = res
                 if winner:
                     scores[str(winner)] += 1
                 if verbose:
@@ -85,5 +87,5 @@ def main():
     subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':
-    main()
+    run(main())
 

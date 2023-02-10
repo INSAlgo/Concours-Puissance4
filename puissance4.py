@@ -5,6 +5,7 @@ import sys
 from abc import ABC, abstractmethod
 from os import path
 import subprocess
+from asyncio import run
 
 # Conditional import for pexpect for cross-OS :
 from platform import system
@@ -29,7 +30,7 @@ class Player(ABC):
         self.no = no
 
     @abstractmethod
-    def askMove(self, board, verbose):
+    async def askMove(self, board, verbose):
         pass
 
     @abstractmethod
@@ -38,6 +39,8 @@ class Player(ABC):
 
     @staticmethod
     def sanithize(board, userInput, verbose=False):
+        if userInput == "stop" :
+            return (None, "user interrupt")
         try:
             x = int(userInput)
         except ValueError:
@@ -65,9 +68,9 @@ class User(Player):
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
-    def askMove(self, board, verbose):
+    async def askMove(self, board, verbose):
         if self.ask_func is not None :
-            return User.sanithize(board, self.ask_func(board, *self.ask_args), verbose)
+            return User.sanithize(board, await self.ask_func(board, *self.ask_args), verbose)
         
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
@@ -114,7 +117,7 @@ class AI(Player):
             self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
 
-    def askMove(self, board, verbose):
+    async def askMove(self, board, verbose):
         try:
             while True:
                 progInput = self.prog.readline().decode("ascii").strip()
@@ -163,6 +166,7 @@ def checkWin(board, no):
                         else:
                             break
                     if streak >= 4:
+                        print(f"win for p{no} at {x}, {y}")
                         return True
     return False
 
@@ -225,7 +229,7 @@ def renderEnd(winner, errors, verbose=False):
         else:
             print()
 
-def game(players: list[User | AI], width, height, verbose=False, discord=False):
+async def game(players: list[User | AI], width, height, verbose=False, discord=False):
     if discord :
         log = []
     else :
@@ -252,12 +256,12 @@ def game(players: list[User | AI], width, height, verbose=False, discord=False):
         # getting player output :
         userInput, error = None, None
         while not userInput:
-            userInput, error = player.askMove(board, verbose)
-            if isinstance(player, AI):
+            userInput, error = await player.askMove(board, verbose)
+            if isinstance(player, AI) or error == "user interrupt" :
                 break
         
         # logging move :
-        if discord:
+        if discord and userInput is not None :
             line = f"Player {player.no} played on column {userInput[0]}"
             log.append(line)
         
@@ -317,7 +321,7 @@ def main():
         players.append(AI(args.pop(0)))
     while len(players) < nbPlayers:
         players.append(User())
-    winner, errors, _ = game(players, width, height, verbose)
+    winner, errors, _ = run(game(players, width, height, verbose))
     renderEnd(winner, errors, verbose)
 
 
