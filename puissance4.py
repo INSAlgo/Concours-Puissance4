@@ -257,7 +257,7 @@ def game(players: list[User | AI], width, height, verbose=False, discord=False):
                 break
         
         # logging move :
-        if discord :
+        if discord:
             line = f"Player {player.no} played on column {userInput[0]}"
             log.append(line)
         
@@ -265,7 +265,7 @@ def game(players: list[User | AI], width, height, verbose=False, discord=False):
         if error:
             if isinstance(player, AI):
                 errors[player.no] = error
-                line = f"{player.pprint()} is eliminated"
+                line = f"{player.pprint()} is eliminated, cause : {error}"
                 if discord : log.append(line)
                 print(line)
             players.remove(player)
@@ -288,7 +288,7 @@ def game(players: list[User | AI], width, height, verbose=False, discord=False):
             if verbose or discord :
                 board_disp = display(board, verbose)
                 if discord : log += board_disp
-            return (None, errors)
+            return (None, errors, log)
         turn += 1
     
     winner = players[turn % len(players)]
