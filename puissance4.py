@@ -266,7 +266,6 @@ def main():
     players = []
     while(args):
         name = args.pop(0)
-        print(name)
         if name == "user":
             players.append(User())
         else:
