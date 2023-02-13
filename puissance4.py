@@ -97,7 +97,7 @@ class AI(Player):
                 return f"node {progPath}"
             case ".class":
                 return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
-            case ".cpp":
+            case ".cpp" | ".c":
                 subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
                 return f"./{progName}.out"
             case _:
@@ -113,9 +113,12 @@ class AI(Player):
         super().startGame(no, width, height, nbPlayers)
         self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
         self.prog.delaybeforesend = None
-        if not system() == "Windows":
-            self.prog.setecho(False)
+        if system() != "Windows": self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
+
+    def loseGame(self, verbose):
+        if verbose: print(f"{self.pprint()} is eliminated")
+        if system() != "Windows": self.prog.close()
 
     async def askMove(self, board, verbose):
         try:
@@ -159,7 +162,7 @@ def checkWin(board, no):
                     streak = 1
                     for i in range(1, 4):
                         nx, ny = x + dx * i, y + dy * i
-                        if nx >= width or ny >= height:
+                        if not (0 <= nx < width and 0 <= ny < height):
                             break
                         if board[nx][ny] == no:
                             streak += 1
@@ -317,7 +320,11 @@ def main():
         nbPlayers = int(args.pop(id))
     players = []
     while(args):
-        players.append(AI(args.pop(0)))
+        name = args.pop(0)
+        if name == "user":
+            players.append(User())
+        else:
+            players.append(AI(name))
     while len(players) < nbPlayers:
         players.append(User())
     winner, errors, _ = run(game(players, width, height, verbose))
