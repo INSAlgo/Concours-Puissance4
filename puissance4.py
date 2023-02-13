@@ -77,7 +77,7 @@ class User(Player):
         try:
             return User.sanithize(board, input(), verbose)
         except KeyboardInterrupt:
-            sys.exit(1)
+            raise KeyboardInterrupt
 
     def pprint(self):
         return f"Player {self.no}"
@@ -87,8 +87,8 @@ class AI(Player):
     @staticmethod
     def prepareCommand(progPath, progName):
         if not path.exists(progPath):
-            print(f"File {progPath} not found\n")
-            sys.exit(1)
+            raise Exception(f"File {progPath} not found\n")
+        
         extension = path.splitext(progPath)[1]
         match extension:
             case ".py":
