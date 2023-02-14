@@ -10,6 +10,16 @@ import asyncio
 
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
 SRCDIR = "ai"
+MAX_PARALLEL_PROCESSES = 50
+
+def split(arr, size = MAX_PARALLEL_PROCESSES):
+    arrs = []
+    while len(arr) > size:
+        pice = arr[:size]
+        arrs.append(pice)
+        arr = arr[size:]
+    arrs.append(arr)
+    return arrs
 
 def explore(dirname: str) -> list[dict[str, str]]:
     path_to_files = list()
@@ -83,15 +93,19 @@ async def main():
 
     nbGames = len(games)
 
-    results = await asyncio.gather(*games)
+    games = split(games)
 
-    for (winner, errors), matchPlayers in zip(results, all_match_players):
-        iGame += 1
-        if winner:
-            scores[str(winner)] += 1
-        if verbose:
-            print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
-            renderEnd(winner, errors)
+    for subGames in games :
+
+        results = await asyncio.gather(*subGames)
+
+        for (winner, errors), matchPlayers in zip(results, all_match_players):
+            iGame += 1
+            if winner:
+                scores[str(winner)] += 1
+            if verbose:
+                print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
+                renderEnd(winner, errors)
 
     printScores(scores, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)

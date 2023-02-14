@@ -143,6 +143,15 @@ class AI(Player):
     def tellLastMove(self, x):
         self.prog.sendline(str(x))
 
+    # def __del__(self):
+    #     print("Proc se fait del")
+
+    async def stop_game(self):
+        await asyncio.gather(asyncio.get_event_loop().run_in_executor(
+            None, 
+            self.prog.close()
+        ))
+
     def __str__(self):
         return self.progName
 
@@ -252,6 +261,8 @@ async def game(players, width, height, verbose=False):
             return (None, errors)
         turn += 1
     winner = players[turn % len(players)]
+    enders = [player.stop_game for player in players]
+    await asyncio.gather(*starters)
     return (winner, errors)
 
 def main():
