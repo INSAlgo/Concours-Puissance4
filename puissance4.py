@@ -11,6 +11,7 @@ from asyncio import run
 from platform import system
 if system() == "Windows":
     from pexpect.popen_spawn import PopenSpawn as spawn
+    from signal import CTRL_C_EVENT
 else :
     from pexpect import spawn
 from pexpect import TIMEOUT
@@ -31,6 +32,10 @@ class Player(ABC):
 
     @abstractmethod
     async def askMove(self, board, verbose):
+        pass
+
+    @abstractmethod
+    async def tellMove(self, move: int):
         pass
 
     @abstractmethod
@@ -58,19 +63,21 @@ class Player(ABC):
 class User(Player):
 
     def __init__(self,
-            ask_func: Callable[[list[list[int]]], str] = None,
-            ask_user = None, ask_channel = None
+            ask_func: Callable[[list[list[int]], int], str] = None,
+            tell_func: Callable[[int, int], None] = None,
+            game_id: int = None
         ):
         super().__init__()
         self.ask_func = ask_func
-        self.ask_args = (ask_user, ask_channel)
+        self.tell_func = tell_func
+        self.game_id = game_id
 
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
     async def askMove(self, board, verbose):
         if self.ask_func is not None :
-            return User.sanithize(board, await self.ask_func(board, *self.ask_args), verbose)
+            return User.sanithize(board, await self.ask_func(board, self.game_id), verbose)
         
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
@@ -78,6 +85,10 @@ class User(Player):
             return User.sanithize(board, input(), verbose)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
+    
+    async def tellMove(self, move):
+        if self.tell_func is not None :
+            await self.tell_func(move, self.game_id)
 
     def pprint(self):
         return f"Player {self.no}"
@@ -118,7 +129,10 @@ class AI(Player):
 
     def loseGame(self, verbose):
         if verbose: print(f"{self.pprint()} is eliminated")
-        if system() != "Windows": self.prog.close()
+        if system() == "Windows":
+            self.prog.kill(CTRL_C_EVENT)
+        else :
+            self.prog.close()
 
     async def askMove(self, board, verbose):
         try:
@@ -143,7 +157,7 @@ class AI(Player):
             return (None, "timeout")
         return User.sanithize(board, progInput, verbose)
 
-    def tellLastMove(self, x):
+    async def tellMove(self, x):
         self.prog.sendline(str(x))
 
     def __str__(self):
@@ -238,66 +252,86 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         log = None
 
     # init
+    L = len(players)
     players = list(players)
+    alive = [True for _ in range(L)]
     errors = {}
     for i, player in enumerate(players):
-        player.startGame(i+1, width, height, len(players))
+        player.startGame(i+1, width, height, L)
     turn = 0
-    player = players[turn]
     board = [[0 for _ in range(height)] for _ in range(width)]
 
+    winner = None
+
     # game loop
-    while len(players) > 1:
-        player = players[turn % len(players)]
+    while sum(alive) > 1:
+        i = turn % L
+        player = players[i]
 
-        # displaying board :
-        if verbose or discord :
-            board_disp = display(board, verbose)
-            if discord : log += board_disp
-        
-        # getting player output :
-        userInput, error = None, None
-        while not userInput:
-            userInput, error = await player.askMove(board, verbose)
-            if isinstance(player, AI) or error == "user interrupt" :
-                break
-        
-        # logging move :
-        if discord and userInput is not None :
-            line = f"Player {player.no} played on column {userInput[0]}"
-            log.append(line)
-        
-        # saving eventual error
-        if error:
-            if isinstance(player, AI):
-                errors[player.no] = error
-                line = f"{player.pprint()} is eliminated, cause : {error}"
-                if discord : log.append(line)
-                print(line)
-            players.remove(player)
-            continue
+        # eliminated player :
+        if not alive[i] :
+            userInput = None
 
+        else :
+
+            # displaying board :
+            if verbose or discord :
+                board_disp = display(board, verbose)
+                if discord : log += board_disp
+            
+            # getting player output :
+            userInput, error = None, None
+            while not userInput:
+                userInput, error = await player.askMove(board, verbose)
+                if isinstance(player, AI) or error == "user interrupt" :
+                    break
+            
+            # logging move :
+            if discord and userInput is not None :
+                line = f"Player {player.no} played on column {userInput[0]}"
+                log.append(line)
+        
+            # saving eventual error
+            if error:
+                if isinstance(player, AI):
+                    errors[player.no] = error
+                    line = f"{player.pprint()} is eliminated, cause : {error}"
+                    player.loseGame(verbose)
+                    if discord : log.append(line)
+                    if verbose : print(line)
+                alive[i] = False
+
+        # register move :
+        if userInput is None :
+            x = -1
+        else :
+            x, y = userInput
+            board[x][y] = player.no
+        
         # giving last move info to other players :
-        x, y = userInput
-        board[x][y] = player.no
-        for otherPlayer in players:
-            if otherPlayer != player and isinstance(otherPlayer, AI):
-                otherPlayer.tellLastMove(x)
+        for j in range(L):
+            if j != i and alive[j]:
+                await players[j].tellMove(x)
         
         # end check :
-        if checkWin(board, player.no):
-            if verbose or discord :
-                board_disp = display(board, verbose)
-                if discord : log += board_disp
-            break
-        elif checkDraw(board):
-            if verbose or discord :
-                board_disp = display(board, verbose)
-                if discord : log += board_disp
-            return (None, errors, log)
+        if x >= 0 :
+            if checkWin(board, player.no):
+                if verbose or discord :
+                    board_disp = display(board, verbose)
+                    if discord : log += board_disp
+                winner = player
+                break
+
+            elif checkDraw(board):
+                if verbose or discord :
+                    board_disp = display(board, verbose)
+                    if discord : log += board_disp
+                break
+        
         turn += 1
     
-    winner = players[turn % len(players)]
+    if sum(alive) == 1 :
+        winner = players[alive.index(True)]
     return (winner, errors, log)
 
 def main():

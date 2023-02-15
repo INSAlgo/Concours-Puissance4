@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cmath>
 
 using namespace std;
 
@@ -8,13 +9,17 @@ int main ()
     string W, H, N, S, trash;
     cin >> W >> H >> N >> S;
 
-    if (S == "2")
-        cin >> trash;
-
+    int i = 1;
     while (1)
     {
-        cout << 0 << endl;
-        cin >> trash;
+        if (i%stoi(N)+1 == stoi(S))
+        {
+            cout << 0 << endl;
+        }
+        else
+        {
+            cin >> trash;
+        }
     }
 
     return 0;
