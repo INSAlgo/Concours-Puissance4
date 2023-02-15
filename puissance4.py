@@ -35,7 +35,7 @@ class Player(ABC):
         pass
 
     @abstractmethod
-    async def tellMove(self, move: int):
+    async def tellMove(self, move: int, player_no: int):
         pass
 
     @abstractmethod
@@ -86,9 +86,9 @@ class User(Player):
         except KeyboardInterrupt:
             raise KeyboardInterrupt
     
-    async def tellMove(self, move):
+    async def tellMove(self, move, p_n):
         if self.tell_func is not None :
-            await self.tell_func(move, self.game_id)
+            await self.tell_func(move, p_n, self.game_id)
 
     def pprint(self):
         return f"Player {self.no}"
@@ -157,7 +157,7 @@ class AI(Player):
             return (None, "timeout")
         return User.sanithize(board, progInput, verbose)
 
-    async def tellMove(self, x):
+    async def tellMove(self, x, _):
         self.prog.sendline(str(x))
 
     def __str__(self):
@@ -311,7 +311,7 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         # giving last move info to other players :
         for j in range(L):
             if j != i and alive[j]:
-                await players[j].tellMove(x)
+                await players[j].tellMove(x, player.no)
         
         # end check :
         if x >= 0 :

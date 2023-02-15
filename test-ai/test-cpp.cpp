@@ -9,7 +9,7 @@ int main ()
     string W, H, N, S, trash;
     cin >> W >> H >> N >> S;
 
-    int i = 1;
+    int i = 0;
     while (1)
     {
         if (i%stoi(N)+1 == stoi(S))
@@ -20,6 +20,8 @@ int main ()
         {
             cin >> trash;
         }
+
+        i++;
     }
 
     return 0;
