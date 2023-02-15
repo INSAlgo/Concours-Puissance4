@@ -157,7 +157,7 @@ class AI(Player):
             return (None, "timeout")
         return User.sanithize(board, progInput, verbose)
 
-    async def tellLastMove(self, x):
+    async def tellMove(self, x):
         self.prog.sendline(str(x))
 
     def __str__(self):
@@ -297,7 +297,7 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         board[x][y] = player.no
         for otherPlayer in players:
             if otherPlayer != player:
-                await otherPlayer.tellLastMove(x)
+                await otherPlayer.tellMove(x)
         
         # end check :
         if checkWin(board, player.no):
