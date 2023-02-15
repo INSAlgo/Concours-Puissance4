@@ -63,8 +63,8 @@ class Player(ABC):
 class User(Player):
 
     def __init__(self,
-            ask_func: Callable[[list[list[int]], int], str] = None,
-            tell_func: Callable[[int, int], None] = None,
+            ask_func: Callable[[int, int], str] = None,
+            tell_func: Callable[[int, int, int, int], None] = None,
             game_id: int = None
         ):
         super().__init__()
@@ -77,7 +77,7 @@ class User(Player):
 
     async def askMove(self, board, verbose):
         if self.ask_func is not None :
-            return User.sanithize(board, await self.ask_func(board, self.game_id), verbose)
+            return User.sanithize(board, await self.ask_func(self.game_id, self.no), verbose)
         
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
@@ -88,7 +88,7 @@ class User(Player):
     
     async def tellMove(self, move, p_n):
         if self.tell_func is not None :
-            await self.tell_func(move, p_n, self.game_id)
+            await self.tell_func(self.game_id, p_n, move, self.no)
 
     def pprint(self):
         return f"Player {self.no}"
