@@ -35,7 +35,7 @@ class Player(ABC):
         pass
 
     @abstractmethod
-    async def tellMove(self, move: int):
+    async def tellMove(self, move: int, player_no: int):
         pass
 
     @abstractmethod
@@ -64,7 +64,7 @@ class User(Player):
 
     def __init__(self,
             ask_func: Callable[[list[list[int]], int], str] = None,
-            tell_func: Callable[[int, int], str] = None,
+            tell_func: Callable[[int, int, int], str] = None,
             game_id: int = None
         ):
         super().__init__()
@@ -86,9 +86,9 @@ class User(Player):
         except KeyboardInterrupt:
             raise KeyboardInterrupt
     
-    async def tellMove(self, move: int):
+    async def tellMove(self, move: int, p_n: int):
         if self.tell_func is not None :
-            await self.tell_func(move, self.game_id)
+            await self.tell_func(move, p_n, self.game_id)
 
     def pprint(self):
         return f"Player {self.no}"
@@ -157,7 +157,7 @@ class AI(Player):
             return (None, "timeout")
         return User.sanithize(board, progInput, verbose)
 
-    async def tellMove(self, x):
+    async def tellMove(self, x, _):
         self.prog.sendline(str(x))
 
     def __str__(self):
@@ -297,7 +297,7 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         board[x][y] = player.no
         for otherPlayer in players:
             if otherPlayer != player:
-                await otherPlayer.tellMove(x)
+                await otherPlayer.tellMove(x, player.no)
         
         # end check :
         if checkWin(board, player.no):
