@@ -11,6 +11,7 @@ from asyncio import run
 from platform import system
 if system() == "Windows":
     from pexpect.popen_spawn import PopenSpawn as spawn
+    from signal import CTRL_C_EVENT
 else :
     from pexpect import spawn
 from pexpect import TIMEOUT
@@ -31,6 +32,10 @@ class Player(ABC):
 
     @abstractmethod
     async def askMove(self, board, verbose):
+        pass
+
+    @abstractmethod
+    async def tellMove(self, move: int):
         pass
 
     @abstractmethod
@@ -58,19 +63,21 @@ class Player(ABC):
 class User(Player):
 
     def __init__(self,
-            ask_func: Callable[[list[list[int]]], str] = None,
-            ask_user = None, ask_channel = None
+            ask_func: Callable[[list[list[int]], int], str] = None,
+            tell_func: Callable[[int, int], str] = None,
+            game_id: int = None
         ):
         super().__init__()
         self.ask_func = ask_func
-        self.ask_args = (ask_user, ask_channel)
+        self.tell_func = tell_func
+        self.game_id = game_id
 
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
     async def askMove(self, board, verbose):
         if self.ask_func is not None :
-            return User.sanithize(board, await self.ask_func(board, *self.ask_args), verbose)
+            return User.sanithize(board, await self.ask_func(board, self.game_id), verbose)
         
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
@@ -78,6 +85,10 @@ class User(Player):
             return User.sanithize(board, input(), verbose)
         except KeyboardInterrupt:
             raise KeyboardInterrupt
+    
+    async def tellMove(self, move: int):
+        if self.tell_func is not None :
+            await self.tell_func(move, self.game_id)
 
     def pprint(self):
         return f"Player {self.no}"
@@ -118,7 +129,10 @@ class AI(Player):
 
     def loseGame(self, verbose):
         if verbose: print(f"{self.pprint()} is eliminated")
-        if system() != "Windows": self.prog.close()
+        if system() == "Windows": 
+            self.prog.kill(CTRL_C_EVENT)
+        else :
+            self.prog.close()
 
     async def askMove(self, board, verbose):
         try:
@@ -143,7 +157,7 @@ class AI(Player):
             return (None, "timeout")
         return User.sanithize(board, progInput, verbose)
 
-    def tellLastMove(self, x):
+    async def tellLastMove(self, x):
         self.prog.sendline(str(x))
 
     def __str__(self):
@@ -273,7 +287,8 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
                 errors[player.no] = error
                 line = f"{player.pprint()} is eliminated, cause : {error}"
                 if discord : log.append(line)
-                print(line)
+                if verbose : print(line)
+                player.loseGame(verbose)
             players.remove(player)
             continue
 
@@ -281,8 +296,8 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         x, y = userInput
         board[x][y] = player.no
         for otherPlayer in players:
-            if otherPlayer != player and isinstance(otherPlayer, AI):
-                otherPlayer.tellLastMove(x)
+            if otherPlayer != player:
+                await otherPlayer.tellLastMove(x)
         
         # end check :
         if checkWin(board, player.no):
@@ -298,6 +313,11 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         turn += 1
     
     winner = players[turn % len(players)]
+
+    for player in players :
+        if isinstance(player, AI) :
+            player.loseGame(verbose)
+    
     return (winner, errors, log)
 
 def main():
