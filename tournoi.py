@@ -8,7 +8,7 @@ from math import factorial
 from asyncio import run
 
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
-SRCDIR = "test-ai"
+SRCDIR = "ai"
 
 def explore(dirname: str) -> list[dict[str, str]]:
     path_to_files = list()
@@ -61,29 +61,32 @@ async def main():
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths if not name.startswith(".")]
     nbAIs = len(players)
-    print(nbAIs)
-    scores = dict()
-    for file in files:
-        scores[file["filename"]] = 0
+    if nbAIs == 0:
+        print(f"No AIs found in folder '{SRCDIR}'")
+    else:
+        print(nbAIs)
+        scores = dict()
+        for file in files:
+            scores[file["filename"]] = 0
 
-    nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers) * rematches
-    iGame = 0
-    if verbose:
-        print(f"Tournament between {len(scores)} AIs")
-    for playersCombinations in combinations(players, nbPlayers):
-        for playersPermutations in permutations(playersCombinations):
-            for _ in range(rematches):
-                iGame += 1
-                matchPlayers = list(playersPermutations)
-                res = await game(matchPlayers, width, height)
-                winner, errors, _  = res
-                if winner:
-                    scores[str(winner)] += 1
-                if verbose:
-                    print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
-                    renderEnd(winner, errors)
+        nbGames = factorial(nbAIs) // factorial(nbAIs - nbPlayers) * rematches
+        iGame = 0
+        if verbose:
+            print(f"Tournament between {len(scores)} AIs")
+        for playersCombinations in combinations(players, nbPlayers):
+            for playersPermutations in permutations(playersCombinations):
+                for _ in range(rematches):
+                    iGame += 1
+                    matchPlayers = list(playersPermutations)
+                    res = await game(matchPlayers, width, height)
+                    winner, errors, _  = res
+                    if winner:
+                        scores[str(winner)] += 1
+                    if verbose:
+                        print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
+                        renderEnd(winner, errors)
 
-    printScores(scores, nbGames, verbose)
+        printScores(scores, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':

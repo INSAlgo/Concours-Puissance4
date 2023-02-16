@@ -39,6 +39,10 @@ class Player(ABC):
         pass
 
     @abstractmethod
+    async def tellMove(self, move: int, player_no: int):
+        pass
+
+    @abstractmethod
     def pprint():
         pass
 
@@ -87,7 +91,7 @@ class User(Player):
         except KeyboardInterrupt:
             raise KeyboardInterrupt
     
-    async def tellMove(self, move, p_n):
+    async def tellMove(self, move: int, p_n: int):
         if self.tell_func is not None :
             await self.tell_func(self.game_id, p_n, move, self.no)
 
