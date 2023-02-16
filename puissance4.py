@@ -31,7 +31,7 @@ class Player(ABC):
         self.no = no
 
     @abstractmethod
-    async def askMove(self, board, verbose):
+    async def askMove(self, board, verbose) -> tuple[int, list[str]]:
         pass
 
     @abstractmethod
@@ -75,14 +75,15 @@ class User(Player):
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
-    async def askMove(self, board, verbose):
+    async def askMove(self, board, verbose) -> tuple[int, str, list[str]]:
         if self.ask_func is not None :
-            return User.sanithize(board, await self.ask_func(self.game_id, self.no), verbose)
+            U_input, error = User.sanithize(board, await self.ask_func(self.game_id, self.no), verbose)
+            return U_input, error, []
         
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
         try:
-            return User.sanithize(board, input(), verbose)
+            return *User.sanithize(board, input(), verbose), []
         except KeyboardInterrupt:
             raise KeyboardInterrupt
     
@@ -134,28 +135,40 @@ class AI(Player):
         else :
             self.prog.close()
 
-    async def askMove(self, board, verbose):
+    async def askMove(self, board, verbose) -> tuple[int, str, list[str]]:
+        log = []
         try:
             while True:
                 progInput = self.prog.readline().decode("ascii").strip()
                 if progInput.startswith("Traceback"):
                     if verbose:
                         print()
-                        print(progInput)
-                        print(self.prog.read().decode("ascii"))
-                    return (None, "error")
+                        log.append("")
+                        line = progInput
+                        print(line)
+                        log.append(line)
+                        line = self.prog.read().decode("ascii")
+                        print(line)
+                        log.append(line)
+                    return None, "error", log
                 if progInput.startswith(">"):
                     if verbose:
-                        print(f"{self.pprint()} {progInput}")
+                        line = f"{self.pprint()} {progInput}"
+                        print(line)
+                        log.append(line)
                 else:
                     break
             if verbose:
-                print(f"Column for {self.pprint()} : {progInput}")
+                line = f"Column for {self.pprint()} : {progInput}"
+                print(line)
+                log.append(log)
         except TIMEOUT:
             if verbose:
-                print(f"{self.pprint()} did not respond in time (over {TIMEOUT_LENGTH}s)")
-            return (None, "timeout")
-        return User.sanithize(board, progInput, verbose)
+                line = f"{self.pprint()} did not respond in time (over {TIMEOUT_LENGTH}s)"
+                print(line)
+                log.append(log)
+            return None, "timeout", log
+        return *User.sanithize(board, progInput, verbose), log
 
     async def tellMove(self, x, _):
         self.prog.sendline(str(x))
@@ -282,7 +295,9 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
             # getting player output :
             userInput, error = None, None
             while not userInput:
-                userInput, error = await player.askMove(board, verbose)
+                userInput, error, new_log = await player.askMove(board, verbose)
+                if discord :
+                    log += new_log
                 if isinstance(player, AI) or error == "user interrupt" :
                     break
             
@@ -363,7 +378,6 @@ def main():
         players.append(User())
     winner, errors, _ = run(game(players, width, height, verbose))
     renderEnd(winner, errors, verbose)
-
 
 if __name__ == "__main__":
     main()
