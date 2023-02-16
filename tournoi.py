@@ -8,7 +8,7 @@ from math import factorial
 from asyncio import run
 
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
-SRCDIR = "test-ai"
+SRCDIR = "ai"
 
 def explore(dirname: str) -> list[dict[str, str]]:
     path_to_files = list()
