@@ -5,7 +5,7 @@ import sys
 from abc import ABC, abstractmethod
 from os import path
 import subprocess
-from asyncio import run
+import asyncio
 
 # Conditional import for pexpect for cross-OS :
 from platform import system
@@ -125,12 +125,19 @@ class AI(Player):
         self.progName = path.splitext(path.basename(progPath))[0]
         self.command = AI.prepareCommand(self.progPath, self.progName)
 
-    def startGame(self, no, width, height, nbPlayers):
+    async def startGame(self, no, width, height, nbPlayers):
         super().startGame(no, width, height, nbPlayers)
-        self.prog = spawn(self.command, timeout=TIMEOUT_LENGTH)
+        result = await asyncio.gather(asyncio.get_event_loop().run_in_executor(
+            None,
+            self._spawn
+        ))
+        self.prog = result[0]
         self.prog.delaybeforesend = None
         if system() != "Windows": self.prog.setecho(False)
         self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
+
+    def _spawn(self):
+        return spawn(self.command, timeout=TIMEOUT_LENGTH)
 
     def loseGame(self, verbose):
         if verbose: print(f"{self.pprint()} is eliminated")
@@ -175,6 +182,15 @@ class AI(Player):
 
     async def tellMove(self, x, _):
         self.prog.sendline(str(x))
+
+    # def __del__(self):
+    #     print("Proc se fait del")
+
+    async def stop_game(self):
+        await asyncio.gather(asyncio.get_event_loop().run_in_executor(
+            None, 
+            self.prog.close
+        ))
 
     def __str__(self):
         return self.progName
@@ -269,8 +285,8 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
     players = list(players)
     alive = [True for _ in range(L)]
     errors = {}
-    for i, player in enumerate(players):
-        player.startGame(i+1, width, height, L)
+    starters = [player.startGame(i+1, width, height, L) for i, player in enumerate(players)]
+    await asyncio.gather(*starters)
     turn = 0
     board = [[0 for _ in range(height)] for _ in range(width)]
 
@@ -345,6 +361,9 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         
         turn += 1
     
+    enders = [player.stop_game() for player in players]
+    await asyncio.gather(*enders)
+    
     if sum(alive) == 1 :
         winner = players[alive.index(True)]
     return (winner, errors, log)
@@ -376,9 +395,8 @@ def main():
             players.append(AI(name))
     while len(players) < nbPlayers:
         players.append(User())
-    winner, errors, _ = run(game(players, width, height, verbose, True))
+    winner, errors = asyncio.run(game(players, width, height, verbose))
     renderEnd(winner, errors, verbose)
 
 if __name__ == "__main__":
     main()
-

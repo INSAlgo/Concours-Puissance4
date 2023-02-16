@@ -1,6 +1,6 @@
 # Directories
 OUTDIR = out
-SRCDIR = ai
+SRCDIR = test-ai
 
 CDIR = $(OUTDIR)/c
 CXXDIR = $(OUTDIR)/cpp
