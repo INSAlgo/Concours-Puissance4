@@ -62,7 +62,7 @@ async def main():
     players = [AI(name) for name in paths if not name.startswith(".")]
     nbAIs = len(players)
     if nbAIs < 2:
-        print(f"No AIs found in folder '{SRCDIR}'")
+        print(f"Not enough AIs in folder '{SRCDIR}'")
     else:
         print(nbAIs)
         scores = dict()
