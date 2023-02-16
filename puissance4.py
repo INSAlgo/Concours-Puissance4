@@ -27,7 +27,7 @@ class Player(ABC):
         pass
 
     @abstractmethod
-    def startGame(self, no, width, height, nbPlayers):
+    async def startGame(self, no, width, height, nbPlayers):
         self.no = no
 
     @abstractmethod
@@ -76,8 +76,8 @@ class User(Player):
         self.tell_func = tell_func
         self.game_id = game_id
 
-    def startGame(self, no, width, height, nbPlayers):
-        return super().startGame(no, width, height, nbPlayers)
+    async def startGame(self, no, width, height, nbPlayers):
+        await super().startGame(no, width, height, nbPlayers)
 
     async def askMove(self, board, verbose, _) -> tuple[int, str, list[str]]:
         if self.ask_func is not None :
@@ -126,7 +126,7 @@ class AI(Player):
         self.command = AI.prepareCommand(self.progPath, self.progName)
 
     async def startGame(self, no, width, height, nbPlayers):
-        super().startGame(no, width, height, nbPlayers)
+        await super().startGame(no, width, height, nbPlayers)
         result = await asyncio.gather(asyncio.get_event_loop().run_in_executor(
             None,
             self._spawn
@@ -187,9 +187,18 @@ class AI(Player):
     #     print("Proc se fait del")
 
     async def stop_game(self):
+        
+        if system() == "Windows":
+            func = self.prog.kill
+            args = [CTRL_C_EVENT]
+        else :
+            func = self.prog.close
+            args = []
+        
         await asyncio.gather(asyncio.get_event_loop().run_in_executor(
             None, 
-            self.prog.close
+            func,
+            args
         ))
 
     def __str__(self):
@@ -361,7 +370,7 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         
         turn += 1
     
-    enders = [player.stop_game() for player in players]
+    enders = [player.stop_game() for player in players if isinstance(player, AI)]
     await asyncio.gather(*enders)
     
     if sum(alive) == 1 :
