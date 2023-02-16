@@ -61,7 +61,7 @@ async def main():
     paths = [file["path"] for file in files]
     players = [AI(name) for name in paths if not name.startswith(".")]
     nbAIs = len(players)
-    if nbAIs == 0:
+    if nbAIs < 2:
         print(f"No AIs found in folder '{SRCDIR}'")
     else:
         print(nbAIs)
