@@ -161,12 +161,12 @@ class AI(Player):
             if verbose:
                 line = f"Column for {self.pprint()} : {progInput}"
                 print(line)
-                log.append(log)
+                log.append(line)
         except TIMEOUT:
             if verbose:
                 line = f"{self.pprint()} did not respond in time (over {TIMEOUT_LENGTH}s)"
                 print(line)
-                log.append(log)
+                log.append(line)
             return None, "timeout", log
         return *User.sanithize(board, progInput, verbose), log
 
@@ -259,10 +259,7 @@ def renderEnd(winner, errors, verbose=False):
             print()
 
 async def game(players: list[User | AI], width, height, verbose=False, discord=False):
-    if discord :
-        log = []
-    else :
-        log = None
+    log = []
 
     # init
     L = len(players)
@@ -376,7 +373,7 @@ def main():
             players.append(AI(name))
     while len(players) < nbPlayers:
         players.append(User())
-    winner, errors, _ = run(game(players, width, height, verbose))
+    winner, errors, _ = run(game(players, width, height, verbose, True))
     renderEnd(winner, errors, verbose)
 
 if __name__ == "__main__":
