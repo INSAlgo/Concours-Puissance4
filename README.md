@@ -1,6 +1,6 @@
 # Concours Puissance 4 d'INSAlgo
 
-Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo ! Sur le mois de février, vous pourrez développer une petite IA capable jouer au jeu. À la fin, toutes les IA vont se rencontrer, et les meilleures remporteront des prix !
+Bienvenue dans le grand tournoi de Puissance 4 d'INSAlgo ! Sur le mois de février, vous pourrez développer une petite IA capable jouer au jeu, dans le langage de votre choix. À la fin, toutes les IA vont se rencontrer, et les meilleures remporteront des prix !
 
 ```plaintext
 ┌───────────────┐
@@ -33,7 +33,7 @@ Votre programme doit ensuite supporter une boucle de jeu :
 
 Pour permettre le debug, les sorties commençant par `>` seront transmises à l'écran en étant ignorées par le jeu.
 
-Un exemple d'IA (pas très intelligente) en Python est donné : [template.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/test-ai/template.py). Vous pouvez vous enservire de base pour votre IA.
+Un exemple d'IA (pas très intelligente) en Python est donné : [template.py](https://github.com/INSAlgo/Concours-Puissance4/blob/main/test-ai/template.py). Vous pouvez vous en servire de base pour votre IA.
 
 ## Tester un programme en local
 

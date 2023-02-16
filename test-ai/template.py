@@ -33,8 +33,9 @@ def main():
             x = int(input())
 
         # Mise à jour de la grille en interne
-        y = fallHeight(board, x)
-        board[x][y] = player
+        if x >= 0 :
+            y = fallHeight(board, x)
+            board[x][y] = player
 
 if __name__ == "__main__":
     main()

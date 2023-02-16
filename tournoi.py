@@ -5,6 +5,7 @@ import sys
 from itertools import combinations, permutations
 import subprocess
 from math import factorial
+from asyncio import run
 
 import asyncio
 
@@ -37,8 +38,6 @@ def printScores(scores: dict[str, int], nbGames, verbose) -> None:
     result = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     for i, (name, score) in enumerate(result):
         print(f"{i+1}. {name} ({score})")
-
-
 
 async def main():
     width, height = WIDTH, HEIGHT
@@ -107,7 +106,7 @@ async def main():
                 print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
                 renderEnd(winner, errors)
 
-    printScores(scores, nbGames, verbose)
+        printScores(scores, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':

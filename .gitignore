@@ -4,3 +4,5 @@ env/*
 out/*
 *.out
 __pycache__/*
+ai/*
+old-ai/*

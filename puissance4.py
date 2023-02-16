@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 
+from typing import Callable
 import sys
 from abc import ABC, abstractmethod
 from os import path
-
+import subprocess
 import asyncio
 
-# Conditional import :
+# Conditional import for pexpect for cross-OS :
 from platform import system
 if system() == "Windows":
     from pexpect.popen_spawn import PopenSpawn as spawn
+    from signal import CTRL_C_EVENT
 else :
     from pexpect import spawn
 from pexpect import TIMEOUT
-import subprocess
 
 WIDTH = 7
 HEIGHT = 6
@@ -30,7 +31,15 @@ class Player(ABC):
         self.no = no
 
     @abstractmethod
-    def askMove(self, board, verbose):
+    async def askMove(self, board, verbose, discord) -> tuple[int, list[str]]:
+        pass
+
+    @abstractmethod
+    async def tellMove(self, move: int, player_no: int):
+        pass
+
+    @abstractmethod
+    async def tellMove(self, move: int, player_no: int):
         pass
 
     @abstractmethod
@@ -39,6 +48,8 @@ class Player(ABC):
 
     @staticmethod
     def sanithize(board, userInput, verbose=False):
+        if userInput == "stop" :
+            return (None, "user interrupt")
         try:
             x = int(userInput)
         except ValueError:
@@ -55,19 +66,34 @@ class Player(ABC):
 
 class User(Player):
 
-    def __init__(self):
+    def __init__(self,
+            ask_func: Callable[[int, int], str] = None,
+            tell_func: Callable[[int, int, int, int], None] = None,
+            game_id: int = None
+        ):
         super().__init__()
+        self.ask_func = ask_func
+        self.tell_func = tell_func
+        self.game_id = game_id
 
     def startGame(self, no, width, height, nbPlayers):
         return super().startGame(no, width, height, nbPlayers)
 
-    def askMove(self, board, verbose):
+    async def askMove(self, board, verbose, _) -> tuple[int, str, list[str]]:
+        if self.ask_func is not None :
+            U_input, error = User.sanithize(board, await self.ask_func(self.game_id, self.no), verbose)
+            return U_input, error, []
+        
         if verbose:
             print(f"Column for {self.pprint()} : ", end="")
         try:
-            return User.sanithize(board, input(), verbose)
+            return *User.sanithize(board, input(), verbose), []
         except KeyboardInterrupt:
-            sys.exit(1)
+            raise KeyboardInterrupt
+    
+    async def tellMove(self, move: int, p_n: int):
+        if self.tell_func is not None :
+            await self.tell_func(self.game_id, p_n, move, self.no)
 
     def pprint(self):
         return f"Player {self.no}"
@@ -77,8 +103,8 @@ class AI(Player):
     @staticmethod
     def prepareCommand(progPath, progName):
         if not path.exists(progPath):
-            print(f"File {progPath} not found\n")
-            sys.exit(1)
+            raise Exception(f"File {progPath} not found\n")
+        
         extension = path.splitext(progPath)[1]
         match extension:
             case ".py":
@@ -87,7 +113,7 @@ class AI(Player):
                 return f"node {progPath}"
             case ".class":
                 return f"java -cp {path.dirname(progPath)} {path.splitext(path.basename(progPath))[0]}"
-            case ".cpp":
+            case ".cpp" | ".c":
                 subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
                 return f"./{progName}.out"
             case _:
@@ -97,7 +123,7 @@ class AI(Player):
         super().__init__()
         self.progPath = progPath
         self.progName = path.splitext(path.basename(progPath))[0]
-        self.command = AI.prepareCommand(self.progPath, self.progName);
+        self.command = AI.prepareCommand(self.progPath, self.progName)
 
     async def startGame(self, no, width, height, nbPlayers):
         super().startGame(no, width, height, nbPlayers)
@@ -115,32 +141,46 @@ class AI(Player):
 
     def loseGame(self, verbose):
         if verbose: print(f"{self.pprint()} is eliminated")
-        if system() != "Windows": self.prog.close()
+        if system() == "Windows":
+            self.prog.kill(CTRL_C_EVENT)
+        else :
+            self.prog.close()
 
-    def askMove(self, board, verbose):
+    async def askMove(self, board, verbose, discord) -> tuple[int, str, list[str]]:
+        log = []
         try:
             while True:
                 progInput = self.prog.readline().decode("ascii").strip()
                 if progInput.startswith("Traceback"):
-                    if verbose:
-                        print()
-                        print(progInput)
-                        print(self.prog.read().decode("ascii"))
-                    return (None, "error")
+                    lines = ["", progInput, self.prog.read().decode("ascii")]
+                    if verbose :
+                        print(*lines, sep='\n')
+                    if discord :
+                        log += lines
+                    return None, "error", log
                 if progInput.startswith(">"):
-                    if verbose:
-                        print(f"{self.pprint()} {progInput}")
+                    line = f"{self.pprint()} {progInput}"
+                    if verbose :
+                        print(line)
+                    if discord :
+                        log.append(line)
                 else:
                     break
-            if verbose:
-                print(f"Column for {self.pprint()} : {progInput}")
+            line = f"Column for {self.pprint()} : {progInput}"
+            if verbose :
+                print(line)
+            if discord :
+                log.append(line)
         except TIMEOUT:
-            if verbose:
-                print(f"{self.pprint()} did not respond in time (over {TIMEOUT_LENGTH}s)")
-            return (None, "timeout")
-        return User.sanithize(board, progInput, verbose)
+            line = f"{self.pprint()} did not respond in time (over {TIMEOUT_LENGTH}s)"
+            if verbose :
+                print(line)
+            if discord :
+                log.append(line)
+            return None, "timeout", log
+        return *User.sanithize(board, progInput, verbose), log
 
-    def tellLastMove(self, x):
+    async def tellMove(self, x, _):
         self.prog.sendline(str(x))
 
     # def __del__(self):
@@ -168,7 +208,7 @@ def checkWin(board, no):
                     streak = 1
                     for i in range(1, 4):
                         nx, ny = x + dx * i, y + dy * i
-                        if nx >= width or ny >= height:
+                        if not (0 <= nx < width and 0 <= ny < height):
                             break
                         if board[nx][ny] == no:
                             streak += 1
@@ -184,22 +224,36 @@ def checkDraw(board):
             return False
     return True
 
-def display(board):
+def display(board, verbose=True) -> list[str]:
     width, height = len(board), len(board[0])
-    print()
+
+    lines = [""]
+    if verbose : print()
+
     line = "  " + ' '.join(str(x%10) for x in range(width)) + "  "
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
     line = '┌' + '─' * (width * 2 + 1) + '┐'
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
     for y in range(height - 1, -1, -1) :
         line = "│ "
         raw_line = ' '.join(str(board[x][y]) for x in range(width))
         line += raw_line.replace('0', '.') + " │"
-        print(line)
+        lines.append(line)
+        if verbose : print(line)
+    
     line = '└' + '─' * (width * 2 + 1) + '┘'
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
     line = "  " + ' '.join(str(x%10) for x in range(width)) + "  "
-    print(line)
+    lines.append(line)
+    if verbose : print(line)
+
+    return lines
 
 def fallHeight(board, x):
     y = len(board[x])
@@ -223,47 +277,96 @@ def renderEnd(winner, errors, verbose=False):
         else:
             print()
 
-async def game(players, width, height, verbose=False):
+async def game(players: list[User | AI], width, height, verbose=False, discord=False):
+    log = []
+
+    # init
+    L = len(players)
     players = list(players)
+    alive = [True for _ in range(L)]
     errors = {}
-    starters = [player.startGame(i+1, width, height, len(players)) for i, player in enumerate(players)]
+    starters = [player.startGame(i+1, width, height, L) for i, player in enumerate(players)]
     await asyncio.gather(*starters)
     turn = 0
-    player = players[turn]
     board = [[0 for _ in range(height)] for _ in range(width)]
-    while len(players) > 1:
-        player = players[turn % len(players)]
-        if verbose:
-            display(board)
-        userInput, error = None, None
-        while not userInput:
-            userInput, error = player.askMove(board, verbose)
-            if isinstance(player, AI):
+
+    winner = None
+
+    # game loop
+    while sum(alive) > 1:
+        i = turn % L
+        player = players[i]
+
+        # eliminated player :
+        if not alive[i] :
+            userInput = None
+
+        else :
+
+            # displaying board :
+            if verbose or discord :
+                board_disp = display(board, verbose)
+                if discord : log += board_disp
+            
+            # getting player output :
+            userInput, error = None, None
+            while not userInput:
+                userInput, error, new_log = await player.askMove(board, verbose, discord)
+                if discord and len(new_log) > 0 :
+                    log += new_log
+                if isinstance(player, AI) or error == "user interrupt" :
+                    break
+            
+            # logging move :
+            if discord and userInput is not None :
+                line = f"Player {player.no} played on column {userInput[0]}"
+                log.append(line)
+        
+            # saving eventual error
+            if error:
+                if isinstance(player, AI):
+                    errors[player.no] = error
+                    line = f"{player.pprint()} is eliminated, cause : {error}"
+                    player.loseGame(verbose)
+                    if discord : log.append(line)
+                    if verbose : print(line)
+                alive[i] = False
+
+        # register move :
+        if userInput is None :
+            x = -1
+        else :
+            x, y = userInput
+            board[x][y] = player.no
+        
+        # giving last move info to other players :
+        for j in range(L):
+            if j != i and alive[j]:
+                await players[j].tellMove(x, player.no)
+        
+        # end check :
+        if x >= 0 :
+            if checkWin(board, player.no):
+                if verbose or discord :
+                    board_disp = display(board, verbose)
+                    if discord : log += board_disp
+                winner = player
                 break
-        if error:
-            if isinstance(player, AI):
-                player.loseGame(verbose)
-                errors[player] = error
-            players.remove(player)
-            continue
-        x, y = userInput
-        board[x][y] = player.no
-        for otherPlayer in players:
-            if otherPlayer != player and isinstance(otherPlayer, AI):
-                otherPlayer.tellLastMove(x)
-        if checkWin(board, player.no):
-            if verbose :
-                display(board)
-            break
-        elif checkDraw(board):
-            if verbose :
-                display(board)
-            return (None, errors)
+
+            elif checkDraw(board):
+                if verbose or discord :
+                    board_disp = display(board, verbose)
+                    if discord : log += board_disp
+                break
+        
         turn += 1
-    winner = players[turn % len(players)]
+    
     enders = [player.stop_game() for player in players]
     await asyncio.gather(*enders)
-    return (winner, errors)
+    
+    if sum(alive) == 1 :
+        winner = players[alive.index(True)]
+    return (winner, errors, log)
 
 def main():
     args = list(sys.argv[1:])
@@ -285,13 +388,15 @@ def main():
         nbPlayers = int(args.pop(id))
     players = []
     while(args):
-        players.append(AI(args.pop(0)))
+        name = args.pop(0)
+        if name == "user":
+            players.append(User())
+        else:
+            players.append(AI(name))
     while len(players) < nbPlayers:
         players.append(User())
     winner, errors = asyncio.run(game(players, width, height, verbose))
     renderEnd(winner, errors, verbose)
 
-
 if __name__ == "__main__":
     main()
-
