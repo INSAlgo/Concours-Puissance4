@@ -10,7 +10,7 @@ import asyncio
 
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
 SRCDIR = "ai"
-MAX_PARALLEL_PROCESSES = 50
+MAX_PARALLEL_PROCESSES = 200
 
 def split(arr, size = MAX_PARALLEL_PROCESSES):
     arrs = []

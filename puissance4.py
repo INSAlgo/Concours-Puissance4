@@ -149,7 +149,7 @@ class AI(Player):
     async def stop_game(self):
         await asyncio.gather(asyncio.get_event_loop().run_in_executor(
             None, 
-            self.prog.close()
+            self.prog.close
         ))
 
     def __str__(self):
@@ -261,8 +261,8 @@ async def game(players, width, height, verbose=False):
             return (None, errors)
         turn += 1
     winner = players[turn % len(players)]
-    enders = [player.stop_game for player in players]
-    await asyncio.gather(*starters)
+    enders = [player.stop_game() for player in players]
+    await asyncio.gather(*enders)
     return (winner, errors)
 
 def main():
