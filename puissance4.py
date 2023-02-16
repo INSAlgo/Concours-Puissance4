@@ -375,7 +375,7 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
     
     if sum(alive) == 1 :
         winner = players[alive.index(True)]
-    return (winner, errors, log)
+    return players, winner, errors, log
 
 def main():
     args = list(sys.argv[1:])
@@ -404,7 +404,7 @@ def main():
             players.append(AI(name))
     while len(players) < nbPlayers:
         players.append(User())
-    winner, errors = asyncio.run(game(players, width, height, verbose))
+    _, winner, errors, _ = asyncio.run(game(players, width, height, verbose))
     renderEnd(winner, errors, verbose)
 
 if __name__ == "__main__":

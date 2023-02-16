@@ -45,6 +45,8 @@ async def main():
     rematches = 1
     nbPlayers = 2
     srcDir = SRCDIR
+
+    # Parse args
     args = list(sys.argv[1:])
     if "-s" in args:
         verbose = False
@@ -68,10 +70,16 @@ async def main():
         id = args.index("-d")
         args.pop(id)
         srcDir = args.pop(id)
+
+    # Compile programs
     subprocess.run(['make', f"SRCDIR={srcDir}"], capture_output=True)
+
+    # Get all programs
     files = explore("out")
     paths = [file["path"] for file in files if not file["path"].startswith(".")]
     nbAIs = len(paths)
+
+    #initialize score
     scores = dict()
     for file in files:
         scores[file["filename"]] = 0
@@ -80,25 +88,29 @@ async def main():
     if verbose:
         print(f"Tournament between {len(scores)} AIs")
 
+    # Create list of coroutines to run
+
     games = list()
-    all_match_players = list()
     
     for playersCombinations in combinations(paths, nbPlayers):
         for playersPermutations in permutations(playersCombinations):
             for _ in range(rematches):
                 matchPlayers = [AI(name) for name in playersPermutations]
-                all_match_players.append(matchPlayers)
                 games.append(game(matchPlayers, width, height))
 
     nbGames = len(games)
 
+    # Make sublists of size MAX_PARALLEL_PROCESSES
+
     games = split(games)
+
+    # Awaiting and printing results
 
     for subGames in games :
 
         results = await asyncio.gather(*subGames)
 
-        for (winner, errors), matchPlayers in zip(results, all_match_players):
+        for matchPlayers, winner, errors, _ in results:
             iGame += 1
             if winner:
                 scores[str(winner)] += 1
@@ -106,7 +118,7 @@ async def main():
                 print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
                 renderEnd(winner, errors)
 
-        printScores(scores, nbGames, verbose)
+    printScores(scores, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
 
 if __name__ == '__main__':
