@@ -293,7 +293,8 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
             userInput, error = None, None
             while not userInput:
                 userInput, error, new_log = await player.askMove(board, verbose)
-                if discord :
+                if discord and new_log is not None :
+                    print(*new_log, sep='\n')
                     log += new_log
                 if isinstance(player, AI) or error == "user interrupt" :
                     break
