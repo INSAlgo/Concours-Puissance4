@@ -12,6 +12,7 @@ import asyncio
 from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
 SRCDIR = "ai"
 MAX_PARALLEL_PROCESSES = 200
+ALLOWED_EXTENSIONS = ['.py', '.js', '', '.out', '.class']
 
 def split(arr, size = MAX_PARALLEL_PROCESSES):
     arrs = []
@@ -26,10 +27,11 @@ def explore(dirname: str) -> list[dict[str, str]]:
     path_to_files = list()
     for root, _, files in os.walk(dirname):
         for file in files:
-            path_to_files.append({
-                "path": os.path.join(root, file), 
-                "filename": os.path.splitext(file)[0]
-            })
+            if os.path.splitext(file)[1] in ALLOWED_EXTENSIONS:
+                path_to_files.append({
+                    "path": os.path.join(root, file), 
+                    "filename": os.path.splitext(file)[0]
+                })
     return path_to_files
 
 def printScores(scores: dict[str, int], nbGames, verbose) -> None:
