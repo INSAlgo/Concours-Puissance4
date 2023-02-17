@@ -34,14 +34,13 @@ def explore(dirname: str) -> list[dict[str, str]]:
                 })
     return path_to_files
 
-def printScores(scores: dict[str, int], nbGames, verbose) -> None:
+def printScores(scoreboard, nbGames, verbose) -> None:
     if verbose: print()
     print(f"Results for {nbGames} games")
-    result = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    for i, (name, score) in enumerate(result):
+    for i, (name, score) in enumerate(scoreboard):
         print(f"{i+1}. {name} ({score})")
 
-async def main():
+def main():
     width, height = WIDTH, HEIGHT
     verbose = True
     rematches = 1
@@ -72,7 +71,10 @@ async def main():
         id = args.index("-d")
         args.pop(id)
         srcDir = args.pop(id)
+    
+    asyncio.run(tournament(width, height, verbose,  rematches, nbPlayers, srcDir))
 
+async def tournament(width=WIDTH, height=HEIGHT, verbose=True, rematches=1, nbPlayers=2, srcDir=SRCDIR):
     # Compile programs
     subprocess.run(['make', f"SRCDIR={srcDir}"], capture_output=True)
 
@@ -93,6 +95,7 @@ async def main():
     # Create list of coroutines to run
 
     games = list()
+    logs = list()
     
     for playersCombinations in combinations(paths, nbPlayers):
         for playersPermutations in permutations(playersCombinations):
@@ -117,12 +120,15 @@ async def main():
             if winner:
                 scores[str(winner)] += 1
             if verbose:
-                print(f"({iGame}/{nbGames}) {' vs '.join((player.progName for player in matchPlayers))} -> " , end="")
+                print(f"({iGame}/{nbGames}) {' vs '.join(map(str, matchPlayers))} -> " , end="")
                 renderEnd(winner, errors)
+            logs.append((matchPlayers, winner, errors))
 
-    printScores(scores, nbGames, verbose)
+    scoreboard = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    printScores(scoreboard, nbGames, verbose)
     subprocess.run(('make', 'clean'), capture_output=True)
+    return scoreboard, logs
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
 
