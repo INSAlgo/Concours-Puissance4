@@ -82,6 +82,7 @@ Les langages acceptés sont :
  - C++ `.cpp` (qui sera compilé avec g++ en O3)
  - C `.c` (qui sera compilé avec gcc en O3)
  - Java `.java`
+ - C# `.cs`
 
 Si vous souhaitez participer avec un autre langage, contactez un membre de bureau d'INSAlgo sur le serveur Discord.
 
