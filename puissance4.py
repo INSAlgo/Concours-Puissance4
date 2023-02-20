@@ -150,7 +150,12 @@ class AI(Player):
         log = []
         try:
             while True:
-                progInput = self.prog.readline().decode("ascii").strip()
+                progInput = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    self.prog.readline
+                )
+                progInput = progInput.decode("ascii").strip()
+                # progInput = self.prog.readline().decode("ascii").strip()
                 if progInput.startswith("Traceback"):
                     lines = ["", progInput, self.prog.read().decode("ascii")]
                     if verbose :
