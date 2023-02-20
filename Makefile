@@ -16,7 +16,9 @@ C_SRCS = $(wildcard $(SRCDIR)/*.c)
 C_EXES = $(C_SRCS:$(SRCDIR)/%.c=$(CDIR)/%.out)
 
 RS_SRCS = $(wildcard $(SRCDIR)/*.rs)
-RS_EXES = $(RS_SRCS:$(SRCDIR)/%.rs=$(RSDIR)/%.out)
+RS_EXES = $(RS_SRCS:$(SRCDIR)/%.rs=%)
+
+CARGO_TOML = Cargo.toml
 
 JAVA_SRCS = $(wildcard $(SRCDIR)/*.java)
 JAVA_EXES = $(JAVA_SRCS:$(SRCDIR)/%.java=$(JAVADIR)/%.class)
@@ -32,7 +34,7 @@ BASE_CSPROJ_FILE = base.csproj
 TO_LINK = $(wildcard $(SRCDIR)/*.py) $(wildcard $(SRCDIR)/*.js)
 LINKS = $(TO_LINK:$(SRCDIR)/%=$(LNDIR)/%)
 
-EXES = $(CPP_EXES) $(C_EXES) $(JAVA_EXES) $(CS_EXES) $(RS_EXES)
+EXES = $(CPP_EXES) $(C_EXES) $(JAVA_EXES) $(CS_EXES)
 
 DIRS = $(CDIR) $(CXXDIR) $(JAVADIR) $(LNDIR) $(CSDIR) $(CS_DIRS) $(RSDIR)
 
@@ -43,10 +45,10 @@ CXXFLAGS = -ansi -Wall -pedantic -std=c++11 -O3
 CC = gcc
 CCFLAGS = -Wall -O3
 
-RSC = rustc
-RSCFLAGS = -C opt-level=3 -C debuginfo=0
-
 JAVAC = javac
+
+RSBUILD = cargo build
+RSFLAGS = --release
 
 LN = ln
 
@@ -56,10 +58,10 @@ ECHO = echo
 CS = dotnet
 BUILD = publish
 
-.PHONY: all clean fclean re run debug
+.PHONY: all clean fclean re run debug rust cargo_toml
 
 $(info $$EXES is $(CS_EXES))
-all: $(EXES) $(LINKS)
+all: $(EXES) $(LINKS) rust
 
 $(CDIR)/%.out: $(SRCDIR)/%.c | $(CDIR)
 	- $(CC) $(CCFLAGS) -o $@ $<
@@ -67,11 +69,22 @@ $(CDIR)/%.out: $(SRCDIR)/%.c | $(CDIR)
 $(CXXDIR)/%.out: $(SRCDIR)/%.cpp | $(CXXDIR)
 	- $(CXX) $(CXXFLAGS) -o $@ $<
 
-$(RSDIR)/%.out: $(SRCDIR)/%.rs | $(RSDIR)
-	- $(RSC) $(RSCFLAGS) -o $@ $<
-
 $(JAVADIR)/%.class: $(SRCDIR)/%.java | $(JAVADIR)
 	- $(JAVAC) -d $(JAVADIR) $<
+
+rust: cargo_toml | $(RSDIR)
+	- $(RSBUILD) $(RSFLAGS)
+	$(foreach O, $(RS_EXES), cp target/release/$(O) $(RSDIR)/$(O) &)
+	$(RM) -r target
+
+cargo_toml:
+	$(file >> $(CARGO_TOML), [package])
+	$(file >> $(CARGO_TOML), name = "out-rs")
+	$(file >> $(CARGO_TOML), version = "0.1.0")
+	$(file >> $(CARGO_TOML), edition = "2018")
+	$(file >> $(CARGO_TOML), [dependencies])
+	$(file >> $(CARGO_TOML), rand = "0.8.4")
+	$(file >> $(CARGO_TOML)) $(foreach O, $(RS_SRCS), $(file >> $(CARGO_TOML), [[bin]]) $(file >> $(CARGO_TOML), path = "$O") $(file >> $(CARGO_TOML), $(O:$(SRCDIR)/%.rs=name = "%")))
 
 $(CSDIR)/%build: $(SRCDIR)/%csproj $(SRCDIR)/%cs | $(CSDIR)
 	- $(CS) $(BUILD) -o $(@:$(CSDIR)/%build=$(CSDIR)/%) $(SRCDIR)/$(@:$(CSDIR)/%build=%)/$(@:$(CSDIR)/%build=%).csproj
@@ -91,3 +104,5 @@ $(DIRS):
 
 clean:
 	$(RM) -r $(OUTDIR)
+	$(RM) $(CARGO_TOML)
+	$(RM) Cargo.lock
