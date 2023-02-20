@@ -7,12 +7,16 @@ CXXDIR = $(OUTDIR)/cpp
 LNDIR = $(OUTDIR)/ln
 JAVADIR = $(OUTDIR)/java
 CSDIR = $(OUTDIR)/cs
+RSDIR = $(OUTDIR)/rs
 
 CPP_SRCS = $(wildcard $(SRCDIR)/*.cpp)
 CPP_EXES = $(CPP_SRCS:$(SRCDIR)/%.cpp=$(CXXDIR)/%.out)
 
 C_SRCS = $(wildcard $(SRCDIR)/*.c)
 C_EXES = $(C_SRCS:$(SRCDIR)/%.c=$(CDIR)/%.out)
+
+RS_SRCS = $(wildcard $(SRCDIR)/*.rs)
+RS_EXES = $(RS_SRCS:$(SRCDIR)/%.rs=$(RSDIR)/%.out)
 
 JAVA_SRCS = $(wildcard $(SRCDIR)/*.java)
 JAVA_EXES = $(JAVA_SRCS:$(SRCDIR)/%.java=$(JAVADIR)/%.class)
@@ -28,9 +32,9 @@ BASE_CSPROJ_FILE = base.csproj
 TO_LINK = $(wildcard $(SRCDIR)/*.py) $(wildcard $(SRCDIR)/*.js)
 LINKS = $(TO_LINK:$(SRCDIR)/%=$(LNDIR)/%)
 
-EXES = $(CPP_EXES) $(C_EXES) $(JAVA_EXES) $(CS_EXES)
+EXES = $(CPP_EXES) $(C_EXES) $(JAVA_EXES) $(CS_EXES) $(RS_EXES)
 
-DIRS = $(CDIR) $(CXXDIR) $(JAVADIR) $(LNDIR) $(CSDIR) $(CS_DIRS)
+DIRS = $(CDIR) $(CXXDIR) $(JAVADIR) $(LNDIR) $(CSDIR) $(CS_DIRS) $(RSDIR)
 
 # Commands
 CXX = g++
@@ -38,6 +42,9 @@ CXXFLAGS = -ansi -Wall -pedantic -std=c++11 -O3
 
 CC = gcc
 CCFLAGS = -Wall -O3
+
+RSC = rustc
+RSCFLAGS = -C opt-level=3 -C debuginfo=0
 
 JAVAC = javac
 
@@ -59,6 +66,9 @@ $(CDIR)/%.out: $(SRCDIR)/%.c | $(CDIR)
 
 $(CXXDIR)/%.out: $(SRCDIR)/%.cpp | $(CXXDIR)
 	- $(CXX) $(CXXFLAGS) -o $@ $<
+
+$(RSDIR)/%.out: $(SRCDIR)/%.rs | $(RSDIR)
+	- $(RSC) $(RSCFLAGS) -o $@ $<
 
 $(JAVADIR)/%.class: $(SRCDIR)/%.java | $(JAVADIR)
 	- $(JAVAC) -d $(JAVADIR) $<
