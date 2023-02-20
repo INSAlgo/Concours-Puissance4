@@ -9,7 +9,12 @@ from asyncio import run
 
 import asyncio
 
-from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
+if __name__ == "__main__" :
+    from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
+else :
+    from puissance4.puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
+
+    
 SRCDIR = "ai"
 MAX_PARALLEL_PROCESSES = 200
 ALLOWED_EXTENSIONS = ['.py', '.js', '', '.out', '.class']
