@@ -83,6 +83,7 @@ Les langages acceptés sont :
  - C `.c` (qui sera compilé avec gcc en O3)
  - Java `.java`
  - C# `.cs`
+ - Rust `.rs`
 
 Si vous souhaitez participer avec un autre langage, contactez un membre de bureau d'INSAlgo sur le serveur Discord.
 
