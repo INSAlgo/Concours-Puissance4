@@ -209,6 +209,9 @@ class AI(Player):
     def __str__(self):
         return self.progName
 
+    def __int__(self):
+        return int(self.progName)
+
     def pprint(self):
         return f"AI {self.no} ({self.progName})"
 
