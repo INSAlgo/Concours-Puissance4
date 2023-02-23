@@ -333,7 +333,6 @@ async def main(args=None):
     nb_players = args.players
     width, height = args.grid
 
-
     players = []
     for name in args.prog:
         if name == "user":
@@ -343,7 +342,8 @@ async def main(args=None):
     while len(players) < nb_players:
         players.append(User())
 
-    return await game(players, width, height)
+    players, winner, errors = await game(players, width, height)
+    return list(map(str, players)), str(winner), {str(player):error for player, error in errors.items()}
 
 if __name__ == "__main__":
     asyncio.run(main())

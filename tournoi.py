@@ -34,9 +34,9 @@ def explore(dirname: str) -> list[dict[str, str]]:
 
 def print_game_results(game_nb, nb_games, players, winner, errors):
     print(f"({game_nb}/{nb_games})",
-          f"{' vs '.join(map(str, players))} ->",
+          f"{' vs '.join(players)} ->",
           f"{winner if winner else 'Draw'}",
-          sep = " ", end = " ")
+          sep = " ", end = "")
     if errors:
         print(f" ({' '.join(f'{player}: {error}' for player, error in errors.items())})")
     else:
@@ -64,8 +64,9 @@ def main():
 
 async def tournament(rematches, nb_players, src_dir, args):
     print(f"Tournament for {SRCDIR} folder")
+
     # Compile programs
-    subprocess.run(['make', f"SRCDIR={src_dir}"], capture_output=True)
+    subprocess.run(('make', f"SRCDIR={src_dir}"), capture_output=True)
 
     # Get all programs
     files = explore("out")
@@ -104,7 +105,7 @@ async def tournament(rematches, nb_players, src_dir, args):
                 scores[str(winner)] += 1
             print_game_results(game_nb, nb_games, players, winner, errors)
 
-    scoreboard = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    scoreboard = sorted(scores.items(), key=lambda score: score[1], reverse=True)
     print_scores(scoreboard, nb_games)
     subprocess.run(('make', 'clean'), capture_output=True)
 
