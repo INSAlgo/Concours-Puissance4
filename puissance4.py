@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from os import path
 import subprocess
 import asyncio
+import argparse
 
 # Conditional import for pexpect for cross-OS :
 from platform import system
@@ -385,35 +386,38 @@ async def game(players: list[User | AI], width, height, verbose=False, discord=F
         winner = players[alive.index(True)]
     return players, winner, errors, log
 
+
+
 def main():
-    args = list(sys.argv[1:])
-    verbose = True
-    nbPlayers = 2
-    width, height = WIDTH, HEIGHT
-    if "-s" in args:
-        args.remove("-s")
-        if len(args) >= 2:
-            verbose = False
-    if "-g" in args:
-        id = args.index("-g")
-        args.pop(id)
-        width = int(args.pop(id))
-        height = int(args.pop(id))
-    if "-p" in args:
-        id = args.index("-p")
-        args.pop(id)
-        nbPlayers = int(args.pop(id))
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("prog", nargs="*", \
+            help="AI program to play the game ('user' to play yourself)")
+    parser.add_argument("-s", "--silent", action="store_true", \
+            help="control verbosity")
+    parser.add_argument("-g", "--grid", type=int, nargs=2, default=[WIDTH, HEIGHT], metavar=("WIDTH", "HEIGHT"), \
+            help="size of the grid")
+    parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS", \
+            help="number of players (if more players than programs are provided, the other ones will be filled as real players)")
+
+    args = parser.parse_args()
+    verbose = not args.silent
+    nbPlayers = args.players
+    width, height = args.grid
+
     players = []
-    while(args):
-        name = args.pop(0)
+    for name in args.prog:
         if name == "user":
             players.append(User())
         else:
             players.append(AI(name))
-    while len(players) < nbPlayers:
+    for _ in range(nbPlayers - len(args.prog)):
         players.append(User())
+
     _, winner, errors, _ = asyncio.run(game(players, width, height, verbose))
     renderEnd(winner, errors, verbose)
 
 if __name__ == "__main__":
     main()
+
+

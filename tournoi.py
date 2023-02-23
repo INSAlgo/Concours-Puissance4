@@ -6,6 +6,7 @@ from itertools import combinations, permutations
 import subprocess
 from math import factorial
 from asyncio import run
+import argparse
 
 import asyncio
 
@@ -46,37 +47,21 @@ def printScores(scoreboard, nbGames, verbose) -> None:
         print(f"{i+1}. {name} ({score})")
 
 def main():
-    width, height = WIDTH, HEIGHT
-    verbose = True
-    rematches = 1
-    nbPlayers = 2
-    srcDir = SRCDIR
 
-    # Parse args
-    args = list(sys.argv[1:])
-    if "-s" in args:
-        verbose = False
-    if "-p" in args:
-        id = args.index("-p")
-        args.pop(id)
-        nbPlayers = int(args.pop(id))
-    if "-r" in args:
-        id = args.index("-r")
-        args.pop(id)
-        rematches = int(args.pop(id))
-    if "-g" in args:
-        id = args.index("-g")
-        args.pop(id)
-        try:
-            width = int(args.pop(id))
-            height = int(args.pop(id))
-        except (IndexError, ValueError):
-            pass
-    if "-d" in args:
-        id = args.index("-d")
-        args.pop(id)
-        srcDir = args.pop(id)
-    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--silent", action="store_true")
+    parser.add_argument("-r", "--rematches", type=int, default=1, metavar="NB_REMATCHES")
+    parser.add_argument("-g", "--grid", type=int, nargs=2, default=[WIDTH, HEIGHT], metavar=("WIDTH", "HEIGHT"))
+    parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS")
+    parser.add_argument("-d", "--directory", default=SRCDIR, metavar="SRC_DIRECTORY")
+
+    args = parser.parse_args()
+    verbose = not args.silent
+    rematches = args.rematches
+    nbPlayers = args.players
+    width, height = args.grid
+    srcDir = args.directory
+
     asyncio.run(tournament(width, height, verbose,  rematches, nbPlayers, srcDir))
 
 async def tournament(width=WIDTH, height=HEIGHT, verbose=True, rematches=1, nbPlayers=2, srcDir=SRCDIR):
@@ -86,7 +71,6 @@ async def tournament(width=WIDTH, height=HEIGHT, verbose=True, rematches=1, nbPl
     # Get all programs
     files = explore("out")
     paths = [file["path"] for file in files if not file["path"].startswith(".")]
-    nbAIs = len(paths)
 
     #initialize score
     scores = dict()
