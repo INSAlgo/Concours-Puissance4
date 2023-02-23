@@ -54,11 +54,16 @@ def main():
     parser.add_argument("-r", "--rematches", type=int, default=1, metavar="NB_REMATCHES")
     parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS")
     parser.add_argument("-d", "--directory", default=SRCDIR, metavar="SRC_DIRECTORY")
+    parser.add_argument("-l", "--log", action="store_true")
 
     args, remaining_args = parser.parse_known_args()
     rematches = args.rematches
     nb_players = args.players
     src_dir = args.directory
+    if args.log:
+        log_file = open("log", "w")
+        sys.stdout = log_file
+        sys.stderr = log_file
 
     asyncio.run(tournament(rematches, nb_players, src_dir, remaining_args))
 
