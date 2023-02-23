@@ -44,6 +44,11 @@ class Player(ABC):
     async def tell_move(self, move: int):
         pass
 
+    async def tell_other_players(self, players, move):
+        for other_player in players:
+            if self != other_player and other_player.alive:
+                await other_player.tell_move(move)
+
     @abstractmethod
     def pprint():
         pass
@@ -51,20 +56,21 @@ class Player(ABC):
     @staticmethod
     def sanithize(board, userInput):
         if userInput == "stop" :
-            return (None, "user interrupt")
+            return None, "user interrupt"
         try:
             x = int(userInput)
         except ValueError:
             print("Invalid input")
-            return (None, "invalid input")
+            return None, "invalid input"
         if not (0 <= x < len(board)):
             print("Out of bounds")
-            return (None, "out of bounds")
+            return None, "out of bounds"
         y = fallHeight(board, x)
         if y == len(board[0]):
             print("Column full")
-            return (None, "column full")
-        return ((x, y), None)
+            return None, "column full"
+        return (x, y), None
+
 
 class User(Player):
 
@@ -90,7 +96,7 @@ class User(Player):
 class AI(Player):
 
     @staticmethod
-    def prepareCommand(progPath, progName):
+    def prepareCommand(progPath):
         if not os.path.exists(progPath):
             raise Exception(f"File {progPath} not found\n")
         
@@ -102,9 +108,6 @@ class AI(Player):
                 return f"node {progPath}"
             case ".class":
                 return f"java -cp {os.path.dirname(progPath)} {os.path.splitext(os.path.basename(progPath))[0]}"
-            case ".cpp" | ".c":
-                subprocess.run(["g++", progPath, "-o", f"{progName}.out"])
-                return f"./{progName}.out"
             case _:
                 return f"./{progPath}"
 
@@ -112,7 +115,7 @@ class AI(Player):
         super().__init__()
         self.progPath = progPath
         self.progName = os.path.splitext(os.path.basename(progPath))[0]
-        self.command = AI.prepareCommand(self.progPath, self.progName)
+        self.command = AI.prepareCommand(self.progPath)
 
     async def start_game(self, no, width, height, nbPlayers):
         await super().start_game(no, width, height, nbPlayers)
@@ -258,13 +261,13 @@ async def game(players: list[User | AI], width, height):
         player = players[i]
 
         if not player.alive:
-            user_input = None
+            await player.tell_other_players(players, -1)
 
         else :
 
             display(board)
 
-            # getting player output :
+            # player input
             user_input, error = None, None
             while not user_input:
                 user_input, error = await player.ask_move(board)
@@ -272,48 +275,44 @@ async def game(players: list[User | AI], width, height):
                     break
 
             # saving eventual error
-            if error:
+            if not user_input:
                 player.lose_game()
                 errors[player.no] = error
                 player.alive = False
                 alive_players -= 1
+                await player.tell_other_players(players, -1)
 
-        # register move :
-        if user_input is None :
-            x = -1
-        else :
-            x, y = user_input
-            board[x][y] = player.no
-        
-        # giving last move info to other players :
-        for j in range(nb_players):
-            if j != i and players[j].alive:
-                await players[j].tell_move(x)
-        
-        # end check :
-        if x >= 0 :
-            if checkWin(board, player.no):
-                display(board)
-                winner = player
-                break
+            else:
 
-            elif checkDraw(board):
-                display(board)
-                break
+                x, y = user_input
+                board[x][y] = player.no
+                await player.tell_other_players(players, x)
+            
+                # end check
+                if checkWin(board, player.no):
+                    display(board)
+                    winner = player
+                    break
+
+                elif checkDraw(board):
+                    display(board)
+                    break
         
         turn += 1
+
+    if alive_players == 1:
+        # nobreak
+        winner = [player for player in players if player.alive][0]
     
+    renderEnd(winner)
+
     enders = (player.stop_game() for player in players if isinstance(player, AI))
     await asyncio.gather(*enders)
-    
-    if alive_players:
-        winner = [player for player in players if player.alive][0]
-    renderEnd(winner)
 
     return winner, errors
 
 
-def main(args=None):
+async def main(args=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("prog", nargs="*", \
@@ -342,9 +341,8 @@ def main(args=None):
     while len(players) < nbPlayers:
         players.append(User())
 
-    asyncio.run(game(players, width, height))
+    await game(players, width, height)
 
 if __name__ == "__main__":
-    main()
-
+    asyncio.run(main())
 
