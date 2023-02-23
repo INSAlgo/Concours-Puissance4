@@ -277,7 +277,7 @@ async def game(players: list[User | AI], width, height):
             # saving eventual error
             if not user_input:
                 player.lose_game()
-                errors[player.no] = error
+                errors[player] = error
                 player.alive = False
                 alive_players -= 1
                 await player.tell_other_players(players, -1)
@@ -309,7 +309,7 @@ async def game(players: list[User | AI], width, height):
     enders = (player.stop_game() for player in players if isinstance(player, AI))
     await asyncio.gather(*enders)
 
-    return winner, errors
+    return players, winner, errors
 
 
 async def main(args=None):
@@ -325,12 +325,14 @@ async def main(args=None):
             help="number of players (if more players than programs are provided, the other ones will be filled as real players)")
 
     args = parser.parse_args(args)
+
     if args.log:
         log_file = open("log", "w")
         sys.stdout = log_file
         sys.stderr = log_file
-    nbPlayers = args.players
+    nb_players = args.players
     width, height = args.grid
+
 
     players = []
     for name in args.prog:
@@ -338,10 +340,10 @@ async def main(args=None):
             players.append(User())
         else:
             players.append(AI(name))
-    while len(players) < nbPlayers:
+    while len(players) < nb_players:
         players.append(User())
 
-    await game(players, width, height)
+    return await game(players, width, height)
 
 if __name__ == "__main__":
     asyncio.run(main())

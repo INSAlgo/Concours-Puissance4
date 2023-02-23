@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
 
+import itertools
 import os
 import sys
-from itertools import combinations, permutations
 import subprocess
-from math import factorial
-from asyncio import run
 import argparse
-
 import asyncio
-
-if __name__ == "__main__" :
-    from puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
-else :
-    from puissance4.puissance4 import game, AI, WIDTH, HEIGHT, renderEnd
-
+import puissance4
     
 SRCDIR = "ai"
 MAX_PARALLEL_PROCESSES = 200
@@ -40,8 +32,18 @@ def explore(dirname: str) -> list[dict[str, str]]:
                 })
     return path_to_files
 
-def printScores(scoreboard, nbGames, verbose) -> None:
-    if verbose: print()
+def print_game_results(game_nb, nb_games, players, winner, errors):
+    print(f"({game_nb}/{nb_games})",
+          f"{' vs '.join(map(str, players))} ->",
+          f"{winner if winner else 'Draw'}",
+          sep = " ", end = " ")
+    if errors:
+        print(f" ({' '.join(f'{player}: {error}' for player, error in errors.items())})")
+    else:
+        print()
+
+def print_scores(scoreboard, nbGames) -> None:
+    print()
     print(f"Results for {nbGames} games")
     for i, (name, score) in enumerate(scoreboard):
         print(f"{i+1}. {name} ({score})")
@@ -49,74 +51,64 @@ def printScores(scoreboard, nbGames, verbose) -> None:
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--silent", action="store_true")
     parser.add_argument("-r", "--rematches", type=int, default=1, metavar="NB_REMATCHES")
-    parser.add_argument("-g", "--grid", type=int, nargs=2, default=[WIDTH, HEIGHT], metavar=("WIDTH", "HEIGHT"))
     parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS")
     parser.add_argument("-d", "--directory", default=SRCDIR, metavar="SRC_DIRECTORY")
 
-    args = parser.parse_args()
-    verbose = not args.silent
+    args, remaining_args = parser.parse_known_args()
     rematches = args.rematches
-    nbPlayers = args.players
-    width, height = args.grid
-    srcDir = args.directory
+    nb_players = args.players
+    src_dir = args.directory
 
-    asyncio.run(tournament(width, height, verbose,  rematches, nbPlayers, srcDir))
+    asyncio.run(tournament(rematches, nb_players, src_dir, remaining_args))
 
-async def tournament(width=WIDTH, height=HEIGHT, verbose=True, rematches=1, nbPlayers=2, srcDir=SRCDIR):
+async def tournament(rematches, nb_players, src_dir, args):
+    print(f"Tournament for {SRCDIR} folder")
     # Compile programs
-    subprocess.run(['make', f"SRCDIR={srcDir}"], capture_output=True)
+    subprocess.run(['make', f"SRCDIR={src_dir}"], capture_output=True)
 
     # Get all programs
     files = explore("out")
     paths = [file["path"] for file in files if not file["path"].startswith(".")]
 
-    #initialize score
-    scores = dict()
-    for file in files:
-        scores[file["filename"]] = 0
-
-    iGame = 0
-    if verbose:
-        print(f"Tournament between {len(scores)} AIs")
+    # Initialize score
+    scores = {file["filename"] : 0 for file in files}
+    game_nb = 0
 
     # Create list of coroutines to run
-
     games = list()
-    logs = list()
-    
-    for playersCombinations in combinations(paths, nbPlayers):
-        for playersPermutations in permutations(playersCombinations):
-            for _ in range(rematches):
-                matchPlayers = [AI(name) for name in playersPermutations]
-                games.append(game(matchPlayers, width, height))
 
-    nbGames = len(games)
+    for combinations in itertools.combinations(paths, nb_players):
+        for players in itertools.permutations(combinations):
+            for _ in range(rematches):
+                games.append(puissance4.main(list(players) + args))
+
+    nb_games = len(games)
 
     # Make sublists of size MAX_PARALLEL_PROCESSES
-
     games = split(games)
 
     # Awaiting and printing results
+    origin_stdout = sys.stdout
+    devnull = open(os.devnull, "w")
 
     for subGames in games :
 
+        sys.stdout = devnull
         results = await asyncio.gather(*subGames)
+        sys.stdout = origin_stdout
 
-        for matchPlayers, winner, errors, _ in results:
-            iGame += 1
+        for players, winner, errors in results:
+            game_nb += 1
             if winner:
                 scores[str(winner)] += 1
-            if verbose:
-                print(f"({iGame}/{nbGames}) {' vs '.join(map(str, matchPlayers))} -> " , end="")
-                renderEnd(winner, errors)
-            logs.append((matchPlayers, winner, errors))
+            print_game_results(game_nb, nb_games, players, winner, errors)
 
     scoreboard = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    printScores(scoreboard, nbGames, verbose)
+    print_scores(scoreboard, nb_games)
     subprocess.run(('make', 'clean'), capture_output=True)
-    return scoreboard, logs
+
+    return scoreboard
 
 if __name__ == '__main__':
     main()
