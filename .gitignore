@@ -6,3 +6,4 @@ out/*
 __pycache__/*
 ai/*
 old-ai/*
+log
