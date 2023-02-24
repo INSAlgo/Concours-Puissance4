@@ -224,12 +224,12 @@ def display(board, emoji):
     width, height = len(board), len(board[0])
     print()
     if emoji:
-        bar = ('0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣')
-        print(''.join(bar[x % 10] for x in range(width)))
+        numbers = ('0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣')
+        colors = ('🔴', '🟡', '🟢', '🔵', '🟣', '🟤',  '⚪️', '⚫️', '🟠')
+        print(''.join(numbers[x % 10] for x in range(width)))
         for y in range(height - 1, -1, -1) :
-            print(''.join(" 🔴🟡"[board[x][y]] if board[x][y] else "⬛" for x in range(width)))
-        print(''.join(bar[x % 10] for x in range(width)))
-        
+            print(''.join(colors[(board[x][y] - 1)%len(colors)] if board[x][y] else "⬛" for x in range(width)))
+        print(''.join(numbers[x % 10] for x in range(width)))
     else:
         print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
         print('┌' + '─' * (width * 2 + 1) + '┐')
