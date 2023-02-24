@@ -75,9 +75,7 @@ async def tournament(rematches, nb_players, src_dir, args):
 
     global game_nb
     game_nb = 0
-    nb_games = 0
-    if nb_ais >= 2:
-        nb_games = math.factorial(nb_ais) // math.factorial(nb_ais - nb_players) * rematches
+    nb_games = math.factorial(nb_ais) // math.factorial(max(nb_ais - nb_players, 1)) * rematches
     for combinations in itertools.combinations(paths, nb_players):
         for players in itertools.permutations(combinations):
             for _ in range(rematches):
