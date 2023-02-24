@@ -9,7 +9,7 @@ import asyncio
 import puissance4
 import math
     
-SRCDIR = "ai"
+SRC_DIR = "ai"
 MAX_PARALLEL_PROCESSES = 200
 ALLOWED_EXTENSIONS = ['.py', '.js', '', '.out', '.class']
 game_nb: int
@@ -52,7 +52,7 @@ async def safe_game(semaphore, devnull, origin_stdout, nb_games, players, args):
         return players, winner
 
 async def tournament(rematches, nb_players, src_dir, args):
-    print(f"Tournament for {SRCDIR} folder")
+    print(f"Tournament for {SRC_DIR} folder")
 
     # Compile programs
     subprocess.run(('make', f"SRCDIR={src_dir}"), capture_output=True)
@@ -75,7 +75,9 @@ async def tournament(rematches, nb_players, src_dir, args):
 
     global game_nb
     game_nb = 0
-    nb_games = math.factorial(nb_ais) // math.factorial(nb_ais - nb_players) * rematches
+    nb_games = 0
+    if nb_ais >= 2:
+        nb_games = math.factorial(nb_ais) // math.factorial(nb_ais - nb_players) * rematches
     for combinations in itertools.combinations(paths, nb_players):
         for players in itertools.permutations(combinations):
             for _ in range(rematches):
@@ -99,7 +101,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--rematches", type=int, default=1, metavar="NB_REMATCHES")
     parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS")
-    parser.add_argument("-d", "--directory", default=SRCDIR, metavar="SRC_DIRECTORY")
+    parser.add_argument("-d", "--directory", default=SRC_DIR, metavar="SRC_DIRECTORY")
     parser.add_argument("-l", "--log", action="store_true")
 
     args, remaining_args = parser.parse_known_args()
