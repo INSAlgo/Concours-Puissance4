@@ -10,7 +10,7 @@ import puissance4
 import math
     
 SRCDIR = "ai"
-MAX_PARALLEL_PROCESSES = 1
+MAX_PARALLEL_PROCESSES = 200
 ALLOWED_EXTENSIONS = ['.py', '.js', '', '.out', '.class']
 game_nb: int
 
