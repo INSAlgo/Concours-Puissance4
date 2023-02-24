@@ -19,7 +19,7 @@ from pexpect import TIMEOUT
 
 WIDTH = 7
 HEIGHT = 6
-TIMEOUT_LENGTH = 1
+TIMEOUT_LENGTH = 0.1
 
 
 class Player(ABC):
@@ -142,12 +142,11 @@ class AI(Player):
     async def ask_move(self, board) -> tuple[tuple[int, int] | None, str | None]:
         try:
             while True:
-                # progInput = await asyncio.get_event_loop().run_in_executor(
-                #     None,
-                #     self.prog.readline
-                # )
-                # progInput = progInput.decode("ascii").strip()
-                progInput = self.prog.readline()
+                progInput = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    self.prog.readline
+                )
+                # progInput = self.prog.readline()
                 if not isinstance(progInput, bytes):
                     continue
                 progInput = progInput.decode().strip()
