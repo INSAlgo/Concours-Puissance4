@@ -7,10 +7,12 @@ import subprocess
 import argparse
 import asyncio
 import puissance4
+import math
     
 SRCDIR = "ai"
-MAX_PARALLEL_PROCESSES = 200
+MAX_PARALLEL_PROCESSES = 1
 ALLOWED_EXTENSIONS = ['.py', '.js', '', '.out', '.class']
+game_nb: int
 
 def explore(dirname: str) -> list[dict[str, str]]:
     path_to_files = list()
@@ -39,9 +41,15 @@ def print_scores(scoreboard, nbGames) -> None:
     for i, (name, score) in enumerate(scoreboard):
         print(f"{i+1}. {name} ({score})")
 
-async def safe_game(semaphore, players, args):
+async def safe_game(semaphore, devnull, origin_stdout, nb_games, players, args):
     async with semaphore:
-        return await puissance4.main(list(players) + args)
+        global game_nb
+        players, winner, errors = await puissance4.main(list(players) + args)
+        game_nb += 1
+        sys.stdout = origin_stdout
+        print_game_results(game_nb, nb_games, players, winner, errors)
+        sys.stdout = devnull
+        return players, winner
 
 async def tournament(rematches, nb_players, src_dir, args):
     print(f"Tournament for {SRCDIR} folder")
@@ -52,37 +60,33 @@ async def tournament(rematches, nb_players, src_dir, args):
     # Get all programs
     files = explore("out")
     paths = [file["path"] for file in files if not file["path"].startswith(".")]
+    nb_ais = len(paths)
 
     # Initialize score
     scores = {file["filename"] : 0 for file in files}
-    game_nb = 0
 
     # Create list of coroutines to run
     games = list()
     semaphore = asyncio.Semaphore(MAX_PARALLEL_PROCESSES)
 
+    origin_stdout = sys.stdout
+    devnull = open(os.devnull, "w")
+    sys.stdout = devnull
+
+    global game_nb
+    game_nb = 0
+    nb_games = math.factorial(nb_ais) // math.factorial(nb_ais - nb_players) * rematches
     for combinations in itertools.combinations(paths, nb_players):
         for players in itertools.permutations(combinations):
             for _ in range(rematches):
-                games.append(safe_game(semaphore, players, args))
-
-    nb_games = len(games)
+                games.append(safe_game(semaphore, devnull, origin_stdout, nb_games, players, args))
 
     # Awaiting and printing results
-    origin_stdout = sys.stdout
-    devnull = open(os.devnull, "w")
-
-    # for subGames in games :
-
-    sys.stdout = devnull
-    results = await asyncio.gather(*games)
-    sys.stdout = origin_stdout
-
-    for players, winner, errors in results:
+    for players, winner in await asyncio.gather(*games):
         game_nb += 1
         if winner:
             scores[str(winner)] += 1
-        print_game_results(game_nb, nb_games, players, winner, errors)
+    sys.stdout = origin_stdout
 
     scoreboard = sorted(scores.items(), key=lambda score: score[1], reverse=True)
     print_scores(scoreboard, nb_games)
