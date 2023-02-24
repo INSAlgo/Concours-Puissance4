@@ -323,10 +323,8 @@ async def main(args=None):
             help="size of the grid")
     parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS", \
             help="number of players (if more players than programs are provided, the other ones will be filled as real players)")
-    parser.add_argument("-r", "--rematches", type=int, default=0, metavar="NB_REMATCHES", \
-            help="number of rematches")
     parser.add_argument("-s", "--silent", action="store_true", \
-            help="only show the result")
+            help="only show the result of the game")
 
     args = parser.parse_args(args)
     width, height = args.grid
