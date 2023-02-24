@@ -220,17 +220,23 @@ def checkDraw(board):
             return False
     return True
 
-def display(board):
+def display(board, emoji):
     width, height = len(board), len(board[0])
     print()
-    print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
-    print('┌' + '─' * (width * 2 + 1) + '┐')
-
-    for y in range(height - 1, -1, -1) :
-        print('│ ' + ' '.join(str(board[x][y]) if board[x][y] else '.' for x in range(width)) + ' │')
-    
-    print('└' + '─' * (width * 2 + 1) + '┘')
-    print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
+    if emoji:
+        bar = ('0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣')
+        print(''.join(bar[x % 10] for x in range(width)))
+        for y in range(height - 1, -1, -1) :
+            print(''.join(" 🔴🟡"[board[x][y]] if board[x][y] else "⬛" for x in range(width)))
+        print(''.join(bar[x % 10] for x in range(width)))
+        
+    else:
+        print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
+        print('┌' + '─' * (width * 2 + 1) + '┐')
+        for y in range(height - 1, -1, -1) :
+            print('│ ' + ' '.join(str(board[x][y]) if board[x][y] else '.' for x in range(width)) + ' │')
+        print('└' + '─' * (width * 2 + 1) + '┘')
+        print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
 
 def fallHeight(board, x):
     y = len(board[x])
@@ -244,7 +250,7 @@ def renderEnd(winner):
     else:
         print("Draw")
 
-async def game(players: list[User | AI], width, height):
+async def game(players: list[User | AI], width, height, emoji):
 
     nb_players = len(players)
     alive_players = nb_players
@@ -265,7 +271,7 @@ async def game(players: list[User | AI], width, height):
 
         else :
 
-            display(board)
+            display(board, emoji)
 
             # player input
             user_input, error = None, None
@@ -290,12 +296,12 @@ async def game(players: list[User | AI], width, height):
             
                 # end check
                 if checkWin(board, player.no):
-                    display(board)
+                    display(board, emoji)
                     winner = player
                     break
 
                 elif checkDraw(board):
-                    display(board)
+                    display(board, emoji)
                     break
         
         turn += 1
@@ -325,6 +331,8 @@ async def main(args=None):
             help="number of players (if more players than programs are provided, the other ones will be filled as real players)")
     parser.add_argument("-s", "--silent", action="store_true", \
             help="only show the result of the game")
+    parser.add_argument("-e", "--emoji", action="store_true", \
+            help="display grid with emojis")
 
     args = parser.parse_args(args)
     width, height = args.grid
@@ -349,7 +357,7 @@ async def main(args=None):
         sys.stdout = log_file
         sys.stderr = log_file
 
-    players, winner, errors = await game(players, width, height)
+    players, winner, errors = await game(players, width, height, args.emoji)
     if args.silent:
         sys.stdout = origin_stdout
         print(f"{winner.pprint() if winner else 'Draw'}", end="")
