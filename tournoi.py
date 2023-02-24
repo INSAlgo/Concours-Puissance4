@@ -25,11 +25,11 @@ def explore(dirname: str) -> list[dict[str, str]]:
 
 def print_game_results(game_nb, nb_games, players, winner, errors):
     print(f"({game_nb}/{nb_games})",
-          f"{' vs '.join(players)} ->",
+          f"{' vs '.join(map(str, players))} ->",
           f"{winner if winner else 'Draw'}",
           sep = " ", end = "")
     if errors:
-        print(f" ({' '.join(f'{player}: {error}' for player, error in errors.items())})")
+        print(f" ({', '.join(f'{player}: {error}' for player, error in errors.items())})")
     else:
         print()
 

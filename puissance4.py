@@ -323,27 +323,43 @@ async def main(args=None):
             help="size of the grid")
     parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS", \
             help="number of players (if more players than programs are provided, the other ones will be filled as real players)")
+    parser.add_argument("-r", "--rematches", type=int, default=0, metavar="NB_REMATCHES", \
+            help="number of rematches")
+    parser.add_argument("-s", "--silent", action="store_true", \
+            help="only show the result")
 
     args = parser.parse_args(args)
-
-    if args.log:
-        log_file = open("log", "w")
-        sys.stdout = log_file
-        sys.stderr = log_file
-    nb_players = args.players
     width, height = args.grid
 
     players = []
+    ai_only = True
     for name in args.prog:
         if name == "user":
             players.append(User())
+            ai_only = False
         else:
             players.append(AI(name))
-    while len(players) < nb_players:
+    while len(players) < args.players:
         players.append(User())
+        ai_only = False
+
+    origin_stdout = sys.stdout
+    if args.log or args.silent:
+        if not ai_only:
+            raise Exception("Game cannot be silent since humans are playing")
+        log_file = open("log" if args.log else os.devnull, "w")
+        sys.stdout = log_file
+        sys.stderr = log_file
 
     players, winner, errors = await game(players, width, height)
-    return list(map(str, players)), str(winner), {str(player):error for player, error in errors.items()}
+    if args.silent:
+        sys.stdout = origin_stdout
+        print(f"{winner.pprint() if winner else 'Draw'}", end="")
+        if errors:
+            print(f" [{', '.join(f'{player.pprint()}: {error}' for player, error in errors.items())}]")
+        else:
+            print()
+    return players, winner, errors
 
 if __name__ == "__main__":
     asyncio.run(main())
