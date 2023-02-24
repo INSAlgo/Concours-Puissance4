@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import puissance4
 import math
+import random
     
 SRC_DIR = "ai"
 MAX_PARALLEL_PROCESSES = 200
@@ -81,8 +82,15 @@ async def tournament(rematches, nb_players, src_dir, args):
             for _ in range(rematches):
                 games.append(safe_game(semaphore, devnull, origin_stdout, nb_games, players, args))
 
+    random.shuffle(games)
+    try:
+        results = await asyncio.gather(*games)
+    except (asyncio.CancelledError | KeyboardInterrupt) as exception:
+        subprocess.run(('make', 'clean'), capture_output=True)
+        raise exception
+
     # Awaiting and printing results
-    for players, winner in await asyncio.gather(*games):
+    for players, winner in results:
         game_nb += 1
         if winner:
             scores[str(winner)] += 1
