@@ -222,21 +222,24 @@ def check_draw(board):
 
 def display(board, emoji):
     width, height = len(board), len(board[0])
-    print()
+    lines = ['']
     if emoji:
         numbers = ('0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣')
         colors = ('🔴', '🟡', '🟢', '🔵', '🟣', '🟤',  '⚪️', '⚫️', '🟠')
-        print(''.join(numbers[x % 10] for x in range(width)))
+        lines.append(''.join(numbers[x % 10] for x in range(width)))
         for y in range(height - 1, -1, -1) :
-            print(''.join(colors[(board[x][y] - 1)%len(colors)] if board[x][y] else "⬛" for x in range(width)))
-        print(''.join(numbers[x % 10] for x in range(width)))
+            lines.append(''.join(colors[(board[x][y] - 1)%len(colors)] if board[x][y] else "⬛" for x in range(width)))
+        lines.append(''.join(numbers[x % 10] for x in range(width)))
     else:
-        print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
-        print('┌' + '─' * (width * 2 + 1) + '┐')
+        lines.append('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
+        lines.append('┌' + '─' * (width * 2 + 1) + '┐')
         for y in range(height - 1, -1, -1) :
-            print('│ ' + ' '.join(str(board[x][y]) if board[x][y] else '.' for x in range(width)) + ' │')
-        print('└' + '─' * (width * 2 + 1) + '┘')
-        print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
+            lines.append('│ ' + ' '.join(str(board[x][y]) if board[x][y] else '.' for x in range(width)) + ' │')
+        lines.append('└' + '─' * (width * 2 + 1) + '┘')
+        lines.append('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
+    rendered_board = '\n'.join(lines)
+    print(rendered_board)
+    return rendered_board
 
 def fall_height(board, x):
     y = len(board[x])
@@ -271,7 +274,7 @@ async def game(players: list[User | AI], width, height, emoji, debug):
 
         else :
 
-            display(board, emoji)
+            rendered = display(board, emoji)
 
             # player input
             user_input, error = None, None
