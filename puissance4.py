@@ -64,7 +64,7 @@ class Player(ABC):
         if not (0 <= x < len(board)):
             print("Out of bounds")
             return None, "out of bounds"
-        y = fallHeight(board, x)
+        y = fall_height(board, x)
         if y == len(board[0]):
             print("Column full")
             return None, "column full"
@@ -99,7 +99,7 @@ class AI(Player):
     def prepareCommand(progPath):
         if not os.path.exists(progPath):
             raise Exception(f"File {progPath} not found\n")
-        
+
         extension = os.path.splitext(progPath)[1]
         match extension:
             case ".py":
@@ -151,11 +151,12 @@ class AI(Player):
                     continue
                 progInput = progInput.decode().strip()
                 if progInput.startswith("Traceback"):
-                    print()
-                    print(progInput)
-                    progInput = self.prog.read()
-                    if isinstance(progInput, bytes):
-                        print(progInput.decode())
+                    if debug:
+                        print()
+                        print(progInput)
+                        progInput = self.prog.read()
+                        if isinstance(progInput, bytes):
+                            print(progInput.decode())
                     return None, "error"
                 if progInput.startswith(">"):
                     if debug:
@@ -194,7 +195,7 @@ class AI(Player):
         return f"AI {self.no} ({self.progName})"
 
 
-def checkWin(board, no):
+def check_win(board, no):
     width, height = len(board), len(board[0])
     for x in range(width):
         for y in range(height):
@@ -213,7 +214,7 @@ def checkWin(board, no):
                         return True
     return False
 
-def checkDraw(board):
+def check_draw(board):
     for x in range(len(board)):
         if not board[x][-1]:
             return False
@@ -237,13 +238,13 @@ def display(board, emoji):
         print('└' + '─' * (width * 2 + 1) + '┘')
         print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
 
-def fallHeight(board, x):
+def fall_height(board, x):
     y = len(board[x])
     while board[x][y - 1] == 0 and y > 0:
         y -= 1
     return y
 
-def renderEnd(winner):
+def display_end(winner):
     if winner:
         print(f"{winner.pprint()} won")
     else:
@@ -294,12 +295,12 @@ async def game(players: list[User | AI], width, height, emoji, debug):
                 await player.tell_other_players(players, x)
             
                 # end check
-                if checkWin(board, player.no):
+                if check_win(board, player.no):
                     display(board, emoji)
                     winner = player
                     break
 
-                elif checkDraw(board):
+                elif check_draw(board):
                     display(board, emoji)
                     break
         
@@ -309,7 +310,7 @@ async def game(players: list[User | AI], width, height, emoji, debug):
         # nobreak
         winner = [player for player in players if player.alive][0]
     
-    renderEnd(winner)
+    display_end(winner)
 
     enders = (player.stop_game() for player in players if isinstance(player, AI))
     await asyncio.gather(*enders)
