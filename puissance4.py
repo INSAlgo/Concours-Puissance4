@@ -36,7 +36,7 @@ class Player(ABC):
         print(f"{self.pprint()} is eliminated")
 
     @abstractmethod
-    async def ask_move(self, board) -> tuple[tuple[int, int] | None, str | None]:
+    async def ask_move(self, board, debug) -> tuple[tuple[int, int] | None, str | None]:
         pass
 
     @abstractmethod
@@ -82,7 +82,8 @@ class User(Player):
     def lose_game(self):
         super().lose_game()
         
-    async def ask_move(self, board):
+    async def ask_move(self, board, debug):
+        await super().ask_move(board, debug)
         print(f"Column for {self.pprint()} : ", end="")
         return User.sanithize(board, input())
 
@@ -138,7 +139,7 @@ class AI(Player):
         else :
             self.prog.close()
 
-    async def ask_move(self, board) -> tuple[tuple[int, int] | None, str | None]:
+    async def ask_move(self, board, debug) -> tuple[tuple[int, int] | None, str | None]:
         try:
             while True:
                 progInput = await asyncio.get_event_loop().run_in_executor(
@@ -157,8 +158,8 @@ class AI(Player):
                         print(progInput.decode())
                     return None, "error"
                 if progInput.startswith(">"):
-                    line = f"{self.pprint()} {progInput}"
-                    print(line)
+                    if debug:
+                        print(f"{self.pprint()} {progInput}")
                 else:
                     break
             line = f"Column for {self.pprint()} : {progInput}"
@@ -248,7 +249,7 @@ def renderEnd(winner):
     else:
         print("Draw")
 
-async def game(players: list[User | AI], width, height, emoji):
+async def game(players: list[User | AI], width, height, emoji, debug):
 
     nb_players = len(players)
     alive_players = nb_players
@@ -274,7 +275,7 @@ async def game(players: list[User | AI], width, height, emoji):
             # player input
             user_input, error = None, None
             while not user_input:
-                user_input, error = await player.ask_move(board)
+                user_input, error = await player.ask_move(board, debug)
                 if isinstance(player, AI) or error == "user interrupt":
                     break
 
@@ -316,7 +317,7 @@ async def game(players: list[User | AI], width, height, emoji):
     return players, winner, errors
 
 
-async def main(args=None):
+async def main(raw_args=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("prog", nargs="*", \
@@ -331,8 +332,10 @@ async def main(args=None):
             help="only show the result of the game")
     parser.add_argument("-e", "--emoji", action="store_true", \
             help="display grid with emojis")
+    parser.add_argument("-n", "--nodebug", action="store_true", \
+            help="do not print the debug output of the programs")
 
-    args = parser.parse_args(args)
+    args = parser.parse_args(raw_args)
     width, height = args.grid
 
     players = []
@@ -355,7 +358,7 @@ async def main(args=None):
         sys.stdout = log_file
         sys.stderr = log_file
 
-    players, winner, errors = await game(players, width, height, args.emoji)
+    players, winner, errors = await game(players, width, height, args.emoji, not args.nodebug)
     if args.silent:
         sys.stdout = origin_stdout
         print(f"{winner.pprint() if winner else 'Draw'}", end="")

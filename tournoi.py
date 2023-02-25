@@ -6,7 +6,7 @@ import sys
 import subprocess
 import argparse
 import asyncio
-import puissance4
+from puissance4 import puissance4
 import math
 import random
     
@@ -102,7 +102,7 @@ async def tournament(rematches, nb_players, src_dir, args):
 
     return scoreboard
 
-def main():
+async def main(raw_args=None):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--rematches", type=int, default=1, metavar="NB_REMATCHES")
@@ -110,7 +110,7 @@ def main():
     parser.add_argument("-d", "--directory", default=SRC_DIR, metavar="SRC_DIRECTORY")
     parser.add_argument("-l", "--log", action="store_true")
 
-    args, remaining_args = parser.parse_known_args()
+    args, remaining_args = parser.parse_known_args(raw_args)
     rematches = args.rematches
     nb_players = args.players
     src_dir = args.directory
@@ -119,8 +119,8 @@ def main():
         sys.stdout = log_file
         sys.stderr = log_file
 
-    asyncio.run(tournament(rematches, nb_players, src_dir, remaining_args))
+    return await tournament(rematches, nb_players, src_dir, remaining_args)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
 
