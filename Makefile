@@ -78,7 +78,7 @@ rust: cargo_toml | $(RSDIR)
 	$(RM) -r target
 
 cargo_toml:
-	$(file >> $(CARGO_TOML), [package])
+	$(file > $(CARGO_TOML), [package])
 	$(file >> $(CARGO_TOML), name = "out-rs")
 	$(file >> $(CARGO_TOML), version = "0.1.0")
 	$(file >> $(CARGO_TOML), edition = "2018")
