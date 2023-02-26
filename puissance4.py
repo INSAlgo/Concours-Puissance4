@@ -7,6 +7,7 @@ import os
 import asyncio
 import argparse
 import re
+import pathlib
 
 # Conditional import for pexpect for cross-OS :
 from platform import system
@@ -28,9 +29,11 @@ class Player(ABC):
 
     ofunc = None
 
-    def __init__(self, no, name):
+    def __init__(self, no, emoji, name=None):
         self.no = no + 1
+        self.icon = EMOJI_COLORS[self.no] if emoji else self.no
         self.name = name
+        self.rendered_name = None
 
     @abstractmethod
     async def start_game(self, width, height, nbPlayers):
@@ -38,7 +41,7 @@ class Player(ABC):
 
     @abstractmethod
     async def lose_game(self):
-        await Player.print(StringIO(f"{self} is eliminated"))
+        await Player.print(f"{self} is eliminated")
 
     @abstractmethod
     async def ask_move(self, board, debug) -> tuple[tuple[int, int] | None, str | None]:
@@ -55,40 +58,41 @@ class Player(ABC):
 
     @staticmethod
     async def sanithize(board, userInput):
-        output = StringIO()
         if userInput == "stop" :
             return None, "user interrupt"
         try:
             x = int(userInput)
         except ValueError:
-            print("Invalid input", file=output)
-            await Player.print(output)
+            await Player.print("Invalid input")
             return None, "invalid input"
         if not (0 <= x < len(board)):
-            print("Out of bounds", file=output)
-            await Player.print(output)
+            await Player.print("Out of bounds")
             return None, "out of bounds"
         y = fall_height(board, x)
         if y == len(board[0]):
-            print("Column full", file=output)
-            await Player.print(output)
+            await Player.print("Column full")
             return None, "column full"
         return (x, y), None
 
     @staticmethod
-    async def print(output: StringIO, send=True):
-        print(output.getvalue(), end="")
-        if User.ofunc and send:
-            await User.ofunc(output.getvalue())
-        output.close()
+    async def print(output: StringIO | str, send_discord=True, end="\n"):
+        if isinstance(output, StringIO):
+            text = output.getvalue()
+            output.close()
+        else:
+            text = output + end
+        print(text, end="")
+        if Player.ofunc and send_discord:
+            await Player.ofunc(text)
 
     def __str__(self):
-        return self.name
+        return self.rendered_name
 
-class User(Player):
+class Human(Player):
 
-    def __init__(self, no, name=None, ifunc=None):
-        super().__init__(no, name)
+    def __init__(self, no, emoji, name=None, ifunc=None):
+        super().__init__(no, emoji, name)
+        self.rendered_name = f"{self.name} {self.icon}" if name else f"Player {self.icon}"
         self.ifunc = ifunc
 
     async def start_game(self, width, height, nbPlayers):
@@ -99,24 +103,17 @@ class User(Player):
         
     async def ask_move(self, board, debug):
         await super().ask_move(board, debug)
-        output = StringIO()
-        print(f"Column for {self} : ", end="", file=output)
-        await Player.print(output)
+        await Player.print(f"Column for {self} : ", end="")
         user_input = await self.input()
-        return await User.sanithize(board, user_input)
+        return await Human.sanithize(board, user_input)
 
     async def tell_move(self, move: int):
         return super().tell_move(move)
-    
-    def render(self):
-        return self.name if self.name else f"Player {self.no}"
 
     async def input(self):
         if self.ifunc:
             user_input = await self.ifunc(self.name)
-            output = StringIO()
-            print(user_input, file=output)
-            await Player.print(output, send=False)
+            await Player.print(user_input, send_discord=False)
             return user_input
         else:
             return input()
@@ -139,10 +136,12 @@ class AI(Player):
             case _:
                 return f"./{progPath}"
 
-    def __init__(self, no, prog_path, discord):
-        self.prog_name = os.path.splitext(os.path.basename(prog_path))[0]
-        name = f"<@{self.prog_name}>'s AI" if discord else f"AI {no} ({self.prog_name})"
-        super().__init__(no, name)
+    def __init__(self, no, emoji, prog_path, discord):
+        super().__init__(no, emoji, pathlib.Path(prog_path).stem)
+        if discord:
+            self.rendered_name = f"<@{self.name}>'s AI {self.icon}"
+        else:
+            self.name = f"AI {self.icon} ({self.name})"
         self.prog_path = prog_path
         self.command = AI.prepare_command(self.prog_path)
 
@@ -172,7 +171,6 @@ class AI(Player):
         await super().ask_move(board, debug)
         try:
             while True:
-                output = StringIO()
                 progInput = await asyncio.get_event_loop().run_in_executor(
                     None,
                     self.prog.readline
@@ -182,6 +180,7 @@ class AI(Player):
                     continue
                 progInput = progInput.decode().strip()
                 if progInput.startswith("Traceback"):
+                    output = StringIO()
                     if debug:
                         print(file=output)
                         print(progInput, file=output)
@@ -192,19 +191,14 @@ class AI(Player):
                     return None, "error"
                 if progInput.startswith(">"):
                     if debug:
-                        print(f"{self} {progInput}", file=output)
-                        await Player.print(output)
+                        await Player.print(f"{self} {progInput}")
                 else:
                     break
-            output = StringIO()
-            print(f"Column for {self} : {progInput}", file=output)
-            await Player.print(output)
+            await Player.print(f"Column for {self} : {progInput}")
         except TIMEOUT:
-            output = StringIO()
-            print(f"{self} did not respond in time (over {TIMEOUT_LENGTH}s)", file=output)
-            await Player.print(output)
+            await Player.print(f"{self} did not respond in time (over {TIMEOUT_LENGTH}s)")
             return None, "timeout"
-        return await User.sanithize(board, progInput)
+        return await Human.sanithize(board, progInput)
 
     async def tell_move(self, move: int):
         self.prog.sendline(str(move))
@@ -273,12 +267,8 @@ def fall_height(board, x):
         y -= 1
     return y
 
-def render_end(board, winner, errors, silent, discord):
-    if discord:
-        output = board
-        print("", file=board)
-    else:
-        output = StringIO()
+def render_end(winner, errors, silent):
+    output = StringIO()
     if winner:
         print(f"{winner} won", end="", file=output)
     else:
@@ -286,9 +276,11 @@ def render_end(board, winner, errors, silent, discord):
     if silent and errors:
         error_list = (f"{player}: {error}" for player, error in errors.items())
         print(f" ({', '.join(error_list)})", file=output)
+    else:
+        print("", file=output)
     return output
 
-async def game(players: list[User | AI], width, height, emoji, debug):
+async def game(players: list[Human | AI], width, height, emoji, debug):
 
     nb_players = len(players)
     alive_players = nb_players
@@ -373,21 +365,21 @@ async def main(raw_args=None, ifunc=None, ofunc=None, discord=True):
     args = parser.parse_args(raw_args)
     width, height = args.grid
 
-    User.ofunc = ofunc
+    Player.ofunc = ofunc
     players = []
     ai_only = True
     pattern = re.compile(r"^\<\@[0-9]{18}\>$")
     for i, name in enumerate(args.prog):
         if name == "user":
-            players.append(User(i))
+            players.append(Human(i, args.emoji))
             ai_only = False
         elif pattern.match(name):
-            players.append(User(i, name, ifunc))
+            players.append(Human(i, args.emoji, name, ifunc))
             ai_only = False
         else:
-            players.append(AI(i, name, discord))
+            players.append(AI(i, args.emoji, name, discord))
     while len(players) < args.players:
-        players.append(User(len(players)))
+        players.append(Human(len(players), args.emoji))
         ai_only = False
 
     origin_stdout = sys.stdout
@@ -395,21 +387,21 @@ async def main(raw_args=None, ifunc=None, ofunc=None, discord=True):
         if not ai_only:
             output = StringIO("Game cannot be silent since humans are playing")
             tmp = output.getvalue()
-            await User.print(output)
+            await Human.print(output)
             raise Exception(tmp)
         if discord:
-            User.ofunc = None
+            Player.ofunc = None
         else:
             sys.stdout = open(os.devnull, "w")
-
-    output = StringIO()
 
     players, winner, errors, board = await game(players, width, height, args.emoji, not args.nodebug)
 
     if args.silent:
         sys.stdout = origin_stdout
-        User.ofunc = ofunc
-    await Player.print(render_end(board, winner, errors, args.silent, discord))
+        Player.ofunc = ofunc
+    if discord:
+        await Player.print(board)
+    await Player.print(render_end(winner, errors, args.silent))
 
     return players, winner, errors
 

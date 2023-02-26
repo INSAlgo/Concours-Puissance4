@@ -29,11 +29,11 @@ def explore(dirname: str) -> list[dict[str, str]]:
 
 def print_game_results(game_nb, nb_games, players, winner, errors):
     print(f"({game_nb}/{nb_games})",
-          f"{' vs '.join(map(str, players))} ->",
-          f"{winner if winner else 'Draw'}",
+          f"{' vs '.join(player.name for player in players)} ->",
+          f"{winner.name if winner else 'Draw'}",
           sep = " ", end = "")
     if errors:
-        print(f" ({', '.join(f'{player}: {error}' for player, error in errors.items())})")
+        print(f" ({', '.join(f'{player.name}: {error}' for player, error in errors.items())})")
     else:
         print()
 
@@ -94,7 +94,7 @@ async def tournament(rematches, nb_players, src_dir, args):
     for players, winner in results:
         game_nb += 1
         if winner:
-            scores[winner.prog_name] += 1
+            scores[winner.name] += 1
     sys.stdout = origin_stdout
 
     scoreboard = sorted(scores.items(), key=lambda score: score[1], reverse=True)
