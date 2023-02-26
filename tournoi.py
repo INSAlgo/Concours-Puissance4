@@ -6,6 +6,7 @@ import sys
 import subprocess
 import argparse
 import asyncio
+
 from puissance4 import puissance4
 import math
 import random
@@ -45,7 +46,7 @@ def print_scores(scoreboard, nbGames) -> None:
 async def safe_game(semaphore, devnull, origin_stdout, nb_games, players, args):
     async with semaphore:
         global game_nb
-        players, winner, errors = await puissance4.main(list(players) + args)
+        players, winner, errors = await puissance4.main(list(players) + args, discord=True)
         game_nb += 1
         sys.stdout = origin_stdout
         print_game_results(game_nb, nb_games, players, winner, errors)
@@ -93,7 +94,7 @@ async def tournament(rematches, nb_players, src_dir, args):
     for players, winner in results:
         game_nb += 1
         if winner:
-            scores[str(winner)] += 1
+            scores[winner.prog_name] += 1
     sys.stdout = origin_stdout
 
     scoreboard = sorted(scores.items(), key=lambda score: score[1], reverse=True)

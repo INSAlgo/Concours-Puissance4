@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+from io import StringIO
 import sys
 from abc import ABC, abstractmethod
 import os
 import asyncio
 import argparse
+import re
 
 # Conditional import for pexpect for cross-OS :
 from platform import system
@@ -19,21 +21,24 @@ from pexpect import TIMEOUT
 WIDTH = 7
 HEIGHT = 6
 TIMEOUT_LENGTH = 0.1
-
+EMOJI_NUMBERS = ('0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣')
+EMOJI_COLORS = ('🟠', '🔴', '🟡', '🟢', '🔵', '🟣', '🟤',  '⚪️', '⚫️')
 
 class Player(ABC):
 
-    def __init__(self):
-        pass
+    ofunc = None
+
+    def __init__(self, no, name):
+        self.no = no + 1
+        self.name = name
 
     @abstractmethod
-    async def start_game(self, no, width, height, nbPlayers):
-        self.no = no
+    async def start_game(self, width, height, nbPlayers):
         self.alive = True
 
     @abstractmethod
-    def lose_game(self):
-        print(f"{self.pprint()} is eliminated")
+    async def lose_game(self):
+        await Player.print(StringIO(f"{self} is eliminated"))
 
     @abstractmethod
     async def ask_move(self, board, debug) -> tuple[tuple[int, int] | None, str | None]:
@@ -48,55 +53,78 @@ class Player(ABC):
             if self != other_player and other_player.alive:
                 await other_player.tell_move(move)
 
-    @abstractmethod
-    def pprint():
-        pass
-
     @staticmethod
-    def sanithize(board, userInput):
+    async def sanithize(board, userInput):
+        output = StringIO()
         if userInput == "stop" :
             return None, "user interrupt"
         try:
             x = int(userInput)
         except ValueError:
-            print("Invalid input")
+            print("Invalid input", file=output)
+            await Player.print(output)
             return None, "invalid input"
         if not (0 <= x < len(board)):
-            print("Out of bounds")
+            print("Out of bounds", file=output)
+            await Player.print(output)
             return None, "out of bounds"
         y = fall_height(board, x)
         if y == len(board[0]):
-            print("Column full")
+            print("Column full", file=output)
+            await Player.print(output)
             return None, "column full"
         return (x, y), None
 
+    @staticmethod
+    async def print(output: StringIO, send=True):
+        print(output.getvalue(), end="")
+        if User.ofunc and send:
+            await User.ofunc(output.getvalue())
+        output.close()
+
+    def __str__(self):
+        return self.name
 
 class User(Player):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, no, name=None, ifunc=None):
+        super().__init__(no, name)
+        self.ifunc = ifunc
 
-    async def start_game(self, no, width, height, nbPlayers):
-        await super().start_game(no, width, height, nbPlayers)
+    async def start_game(self, width, height, nbPlayers):
+        await super().start_game(width, height, nbPlayers)
 
-    def lose_game(self):
-        super().lose_game()
+    async def lose_game(self):
+        await super().lose_game()
         
     async def ask_move(self, board, debug):
         await super().ask_move(board, debug)
-        print(f"Column for {self.pprint()} : ", end="")
-        return User.sanithize(board, input())
+        output = StringIO()
+        print(f"Column for {self} : ", end="", file=output)
+        await Player.print(output)
+        user_input = await self.input()
+        return await User.sanithize(board, user_input)
 
     async def tell_move(self, move: int):
         return super().tell_move(move)
     
-    def pprint(self):
-        return f"Player {self.no}"
+    def render(self):
+        return self.name if self.name else f"Player {self.no}"
+
+    async def input(self):
+        if self.ifunc:
+            user_input = await self.ifunc(self.name)
+            output = StringIO()
+            print(user_input, file=output)
+            await Player.print(output, send=False)
+            return user_input
+        else:
+            return input()
 
 class AI(Player):
 
     @staticmethod
-    def prepareCommand(progPath):
+    def prepare_command(progPath):
         if not os.path.exists(progPath):
             raise Exception(f"File {progPath} not found\n")
 
@@ -111,14 +139,15 @@ class AI(Player):
             case _:
                 return f"./{progPath}"
 
-    def __init__(self, progPath):
-        super().__init__()
-        self.progPath = progPath
-        self.progName = os.path.splitext(os.path.basename(progPath))[0]
-        self.command = AI.prepareCommand(self.progPath)
+    def __init__(self, no, prog_path, discord):
+        self.prog_name = os.path.splitext(os.path.basename(prog_path))[0]
+        name = f"<@{self.prog_name}>'s AI" if discord else f"AI {no} ({self.prog_name})"
+        super().__init__(no, name)
+        self.prog_path = prog_path
+        self.command = AI.prepare_command(self.prog_path)
 
-    async def start_game(self, no, width, height, nbPlayers):
-        await super().start_game(no, width, height, nbPlayers)
+    async def start_game(self, width, height, nbPlayers):
+        await super().start_game(width, height, nbPlayers)
         result = await asyncio.gather(asyncio.get_event_loop().run_in_executor(
             None,
             self._spawn
@@ -126,13 +155,13 @@ class AI(Player):
         self.prog = result[0]
         self.prog.delaybeforesend = 0
         if system() != "Windows": self.prog.setecho(False)
-        self.prog.sendline(f"{width} {height} {nbPlayers} {no}")
+        self.prog.sendline(f"{width} {height} {nbPlayers} {self.no}")
 
     def _spawn(self):
         return spawn(self.command, timeout=TIMEOUT_LENGTH)
 
-    def lose_game(self):
-        super().lose_game()
+    async def lose_game(self):
+        await super().lose_game()
         if system() == "Windows":
             pass
             # self.prog.kill(CTRL_C_EVENT)
@@ -140,8 +169,10 @@ class AI(Player):
             self.prog.close()
 
     async def ask_move(self, board, debug) -> tuple[tuple[int, int] | None, str | None]:
+        await super().ask_move(board, debug)
         try:
             while True:
+                output = StringIO()
                 progInput = await asyncio.get_event_loop().run_in_executor(
                     None,
                     self.prog.readline
@@ -152,24 +183,28 @@ class AI(Player):
                 progInput = progInput.decode().strip()
                 if progInput.startswith("Traceback"):
                     if debug:
-                        print()
-                        print(progInput)
+                        print(file=output)
+                        print(progInput, file=output)
                         progInput = self.prog.read()
                         if isinstance(progInput, bytes):
-                            print(progInput.decode())
+                            print(progInput.decode(), file=output)
+                        await Player.print(output)
                     return None, "error"
                 if progInput.startswith(">"):
                     if debug:
-                        print(f"{self.pprint()} {progInput}")
+                        print(f"{self} {progInput}", file=output)
+                        await Player.print(output)
                 else:
                     break
-            line = f"Column for {self.pprint()} : {progInput}"
-            print(line)
+            output = StringIO()
+            print(f"Column for {self} : {progInput}", file=output)
+            await Player.print(output)
         except TIMEOUT:
-            line = f"{self.pprint()} did not respond in time (over {TIMEOUT_LENGTH}s)"
-            print(line)
+            output = StringIO()
+            print(f"{self} did not respond in time (over {TIMEOUT_LENGTH}s)", file=output)
+            await Player.print(output)
             return None, "timeout"
-        return User.sanithize(board, progInput)
+        return await User.sanithize(board, progInput)
 
     async def tell_move(self, move: int):
         self.prog.sendline(str(move))
@@ -187,12 +222,6 @@ class AI(Player):
             func,
             args
         ))
-
-    def __str__(self):
-        return self.progName
-
-    def pprint(self):
-        return f"AI {self.no} ({self.progName})"
 
 
 def check_win(board, no):
@@ -220,26 +249,23 @@ def check_draw(board):
             return False
     return True
 
-def display(board, emoji):
+def render_grid(board, emoji):
+    output = StringIO()
+    print("", file=output)
     width, height = len(board), len(board[0])
-    lines = ['']
     if emoji:
-        numbers = ('0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣')
-        colors = ('🔴', '🟡', '🟢', '🔵', '🟣', '🟤',  '⚪️', '⚫️', '🟠')
-        lines.append(''.join(numbers[x % 10] for x in range(width)))
+        print(''.join(EMOJI_NUMBERS[x % 10] for x in range(width)), file=output)
         for y in range(height - 1, -1, -1) :
-            lines.append(''.join(colors[(board[x][y] - 1)%len(colors)] if board[x][y] else "⬛" for x in range(width)))
-        lines.append(''.join(numbers[x % 10] for x in range(width)))
+            print(''.join(EMOJI_COLORS[board[x][y] % len(EMOJI_COLORS)] if board[x][y] else "⬛" for x in range(width)), file=output)
+        print(''.join(EMOJI_NUMBERS[x % 10] for x in range(width)), file=output)
     else:
-        lines.append('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
-        lines.append('┌' + '─' * (width * 2 + 1) + '┐')
+        print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ', file=output)
+        print('┌' + '─' * (width * 2 + 1) + '┐', file=output)
         for y in range(height - 1, -1, -1) :
-            lines.append('│ ' + ' '.join(str(board[x][y]) if board[x][y] else '.' for x in range(width)) + ' │')
-        lines.append('└' + '─' * (width * 2 + 1) + '┘')
-        lines.append('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ')
-    rendered_board = '\n'.join(lines)
-    print(rendered_board)
-    return rendered_board
+            print('│ ' + ' '.join(str(board[x][y]) if board[x][y] else '.' for x in range(width)) + ' │', file=output)
+        print('└' + '─' * (width * 2 + 1) + '┘', file=output)
+        print('  ' + ' '.join(str(x % 10) for x in range(width)) + '  ', file=output)
+    return output
 
 def fall_height(board, x):
     y = len(board[x])
@@ -247,18 +273,27 @@ def fall_height(board, x):
         y -= 1
     return y
 
-def display_end(winner):
-    if winner:
-        print(f"{winner.pprint()} won")
+def render_end(board, winner, errors, silent, discord):
+    if discord:
+        output = board
+        print("", file=board)
     else:
-        print("Draw")
+        output = StringIO()
+    if winner:
+        print(f"{winner} won", end="", file=output)
+    else:
+        print("Draw", end="", file=output)
+    if silent and errors:
+        error_list = (f"{player}: {error}" for player, error in errors.items())
+        print(f" ({', '.join(error_list)})", file=output)
+    return output
 
 async def game(players: list[User | AI], width, height, emoji, debug):
 
     nb_players = len(players)
     alive_players = nb_players
     errors = {}
-    starters = (player.start_game(i+1, width, height, nb_players) for i, player in enumerate(players))
+    starters = (player.start_game(width, height, nb_players) for player in players)
     await asyncio.gather(*starters)
     turn = 0
     board = [[0 for _ in range(height)] for _ in range(width)]
@@ -274,7 +309,7 @@ async def game(players: list[User | AI], width, height, emoji, debug):
 
         else :
 
-            rendered = display(board, emoji)
+            await Player.print(render_grid(board, emoji))
 
             # player input
             user_input, error = None, None
@@ -285,7 +320,7 @@ async def game(players: list[User | AI], width, height, emoji, debug):
 
             # saving eventual error
             if not user_input:
-                player.lose_game()
+                await player.lose_game()
                 errors[player] = error
                 player.alive = False
                 alive_players -= 1
@@ -299,12 +334,10 @@ async def game(players: list[User | AI], width, height, emoji, debug):
             
                 # end check
                 if check_win(board, player.no):
-                    display(board, emoji)
                     winner = player
                     break
 
                 elif check_draw(board):
-                    display(board, emoji)
                     break
         
         turn += 1
@@ -313,21 +346,19 @@ async def game(players: list[User | AI], width, height, emoji, debug):
         # nobreak
         winner = [player for player in players if player.alive][0]
     
-    display_end(winner)
-
     enders = (player.stop_game() for player in players if isinstance(player, AI))
     await asyncio.gather(*enders)
 
-    return players, winner, errors
+    final_board = render_grid(board, emoji)
+
+    return players, winner, errors, final_board
 
 
-async def main(raw_args=None):
+async def main(raw_args=None, ifunc=None, ofunc=None, discord=True):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("prog", nargs="*", \
             help="AI program to play the game ('user' to play yourself)")
-    parser.add_argument("-l", "--log", action="store_true", \
-            help="redirect the game output to the file named 'log'")
     parser.add_argument("-g", "--grid", type=int, nargs=2, default=[WIDTH, HEIGHT], metavar=("WIDTH", "HEIGHT"), \
             help="size of the grid")
     parser.add_argument("-p", "--players", type=int, default=2, metavar="NB_PLAYERS", \
@@ -342,34 +373,44 @@ async def main(raw_args=None):
     args = parser.parse_args(raw_args)
     width, height = args.grid
 
+    User.ofunc = ofunc
     players = []
     ai_only = True
-    for name in args.prog:
+    pattern = re.compile(r"^\<\@[0-9]{18}\>$")
+    for i, name in enumerate(args.prog):
         if name == "user":
-            players.append(User())
+            players.append(User(i))
+            ai_only = False
+        elif pattern.match(name):
+            players.append(User(i, name, ifunc))
             ai_only = False
         else:
-            players.append(AI(name))
+            players.append(AI(i, name, discord))
     while len(players) < args.players:
-        players.append(User())
+        players.append(User(len(players)))
         ai_only = False
 
     origin_stdout = sys.stdout
-    if args.log or args.silent:
+    if args.silent:
         if not ai_only:
-            raise Exception("Game cannot be silent since humans are playing")
-        log_file = open("log" if args.log else os.devnull, "w")
-        sys.stdout = log_file
-        sys.stderr = log_file
+            output = StringIO("Game cannot be silent since humans are playing")
+            tmp = output.getvalue()
+            await User.print(output)
+            raise Exception(tmp)
+        if discord:
+            User.ofunc = None
+        else:
+            sys.stdout = open(os.devnull, "w")
 
-    players, winner, errors = await game(players, width, height, args.emoji, not args.nodebug)
+    output = StringIO()
+
+    players, winner, errors, board = await game(players, width, height, args.emoji, not args.nodebug)
+
     if args.silent:
         sys.stdout = origin_stdout
-        print(f"{winner.pprint() if winner else 'Draw'}", end="")
-        if errors:
-            print(f" [{', '.join(f'{player.pprint()}: {error}' for player, error in errors.items())}]")
-        else:
-            print()
+        User.ofunc = ofunc
+    await Player.print(render_end(board, winner, errors, args.silent, discord))
+
     return players, winner, errors
 
 if __name__ == "__main__":
