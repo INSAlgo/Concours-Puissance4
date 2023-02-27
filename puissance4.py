@@ -10,14 +10,7 @@ import re
 import pathlib
 
 # Conditional import for pexpect for cross-OS :
-from platform import system
-# if system() == "Windows":
-#     from pexpect.popen_spawn import PopenSpawn as spawn
-#     from signal import CTRL_C_EVENT
-# else :
-#     from pexpect import spawn
-from pexpect import spawn
-from pexpect import TIMEOUT
+# from platform import system
 
 WIDTH = 7
 HEIGHT = 6
@@ -151,31 +144,33 @@ class AI(Player):
             None,
             self._spawn
         ))
-        self.prog = result[0]
-        self.prog.delaybeforesend = 0
-        if system() != "Windows": self.prog.setecho(False)
-        self.prog.sendline(f"{width} {height} {nbPlayers} {self.no}")
+        self.prog = await result[0]
+        if self.prog.stdin:
+            self.prog.stdin.write(f"{width} {height} {nbPlayers} {self.no}\n".encode())
+            await self.prog.stdin.drain()
 
     def _spawn(self):
-        return spawn(self.command, timeout=TIMEOUT_LENGTH)
+        command = AI.prepare_command(self.prog_path)
+        subproc = asyncio.create_subprocess_shell(command,
+            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        return asyncio.wait_for(subproc, TIMEOUT_LENGTH)
 
     async def lose_game(self):
         await super().lose_game()
-        if system() == "Windows":
-            pass
-            # self.prog.kill(CTRL_C_EVENT)
-        else :
-            self.prog.close()
+        self.prog.terminate()
 
     async def ask_move(self, board, debug) -> tuple[tuple[int, int] | None, str | None]:
         await super().ask_move(board, debug)
         try:
             while True:
-                progInput = await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    self.prog.readline
-                )
+                if not self.prog.stdout:
+                    return None, "communication failed"
+                # progInput = await asyncio.get_event_loop().run_in_executor(
+                #     None,
+                #     self.prog.readline
+                # )
                 # progInput = self.prog.readline()
+                progInput = await asyncio.wait_for(self.prog.stdout.readuntil(), 0.1)
                 if not isinstance(progInput, bytes):
                     continue
                 progInput = progInput.decode().strip()
@@ -184,7 +179,7 @@ class AI(Player):
                     if debug:
                         print(file=output)
                         print(progInput, file=output)
-                        progInput = self.prog.read()
+                        progInput = self.prog.stdout.read()
                         if isinstance(progInput, bytes):
                             print(progInput.decode(), file=output)
                         await Player.print(output)
@@ -195,27 +190,29 @@ class AI(Player):
                 else:
                     break
             await Player.print(f"Column for {self} : {progInput}")
-        except TIMEOUT:
+        except asyncio.TimeoutError:
             await Player.print(f"{self} did not respond in time (over {TIMEOUT_LENGTH}s)")
             return None, "timeout"
         return await Human.sanithize(board, progInput)
 
     async def tell_move(self, move: int):
-        self.prog.sendline(str(move))
+        if self.prog.stdin:
+            self.prog.stdin.write(f"{move}\n".encode())
+            await self.prog.stdin.drain()
 
     async def stop_game(self):
+        self.prog.terminate()
         
         # if system() == "Windows":
         #     func = self.prog.kill
         #     args = [CTRL_C_EVENT]
-        func = self.prog.close
-        args = []
-        
-        await asyncio.gather(asyncio.get_event_loop().run_in_executor(
-            None, 
-            func,
-            args
-        ))
+        # args = []
+        # 
+        # await asyncio.gather(asyncio.get_event_loop().run_in_executor(
+        #     None, 
+        #     func,
+        #     args
+        # ))
 
 
 def check_win(board, no):
