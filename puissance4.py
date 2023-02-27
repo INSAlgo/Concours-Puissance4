@@ -120,11 +120,11 @@ class AI(Player):
 
     @staticmethod
     def prepare_command(progPath):
-        if not os.path.exists(progPath):
+        path = pathlib.Path(progPath)
+        if not path.is_file():
             raise Exception(f"File {progPath} not found\n")
 
-        extension = os.path.splitext(progPath)[1]
-        match extension:
+        match path.suffix:
             case ".py":
                 return f"python3 {progPath}"
             case ".js":
@@ -145,20 +145,11 @@ class AI(Player):
 
     async def start_game(self, width, height, nbPlayers):
         await super().start_game(width, height, nbPlayers)
-        result = await asyncio.gather(asyncio.get_event_loop().run_in_executor(
-            None,
-            self._spawn
-        ))
-        self.prog = await result[0]
+        self.prog = await asyncio.create_subprocess_shell(AI.prepare_command(self.prog_path),
+            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         if self.prog.stdin:
             self.prog.stdin.write(f"{width} {height} {nbPlayers} {self.no}\n".encode())
             await self.prog.stdin.drain()
-
-    def _spawn(self):
-        command = AI.prepare_command(self.prog_path)
-        subproc = asyncio.create_subprocess_shell(command,
-            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        return asyncio.wait_for(subproc, TIMEOUT_LENGTH)
 
     async def lose_game(self):
         await super().lose_game()
@@ -169,11 +160,6 @@ class AI(Player):
             while True:
                 if not self.prog.stdout:
                     return None, "communication failed"
-                # progInput = await asyncio.get_event_loop().run_in_executor(
-                #     None,
-                #     self.prog.readline
-                # )
-                # progInput = self.prog.readline()
                 progInput = await asyncio.wait_for(self.prog.stdout.readuntil(), 0.1)
                 if not isinstance(progInput, bytes):
                     continue
@@ -194,7 +180,7 @@ class AI(Player):
                 else:
                     break
             await Player.print(f"Column for {self} : {progInput}")
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.exceptions.IncompleteReadError):
             await Player.print(f"AI did not respond in time (over {TIMEOUT_LENGTH}s)")
             return None, "timeout"
         return await Human.sanithize(board, progInput)
@@ -205,10 +191,10 @@ class AI(Player):
             await self.prog.stdin.drain()
 
     async def stop_game(self):
-        return asyncio.gather(asyncio.get_event_loop().run_in_executor(
-            None, 
-            self.prog.terminate
-        ))
+        if self.prog.stdin:
+            self.prog.stdin.close()
+            await self.prog.stdin.wait_closed()
+        self.prog.terminate()
 
 
 def check_win(board, no):
@@ -267,8 +253,8 @@ def render_end(winner, errors, silent):
     else:
         print("Draw", end="", file=output)
     if silent and errors:
-        error_list = (f"{player}: {error}" for player, error in errors.items())
-        print(f" ({', '.join(error_list)})", file=output)
+        error_list = (f"{player} : {error}" for player, error in errors.items())
+        print(f"  [{', '.join(error_list)}]", file=output)
     else:
         print("", file=output)
     return output
