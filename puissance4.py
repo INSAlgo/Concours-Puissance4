@@ -134,7 +134,7 @@ class AI(Player):
         if discord:
             self.rendered_name = f"<@{self.name}>'s AI {self.icon}"
         else:
-            self.name = f"AI {self.icon} ({self.name})"
+            self.rendered_name = f"AI {self.icon} ({self.name})"
         self.prog_path = prog_path
         self.command = AI.prepare_command(self.prog_path)
 
@@ -343,7 +343,7 @@ async def game(players: list[Human | AI], width, height, emoji, debug):
     return players, winner, errors, final_board
 
 
-async def main(raw_args=None, ifunc=None, ofunc=None, discord=True):
+async def main(raw_args=None, ifunc=None, ofunc=None, discord=False):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("prog", nargs="*", \
