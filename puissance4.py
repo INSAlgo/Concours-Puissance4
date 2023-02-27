@@ -191,10 +191,11 @@ class AI(Player):
             await self.prog.stdin.drain()
 
     async def stop_game(self):
-        if self.prog.stdin:
-            self.prog.stdin.close()
-            await self.prog.stdin.wait_closed()
-        self.prog.terminate()
+        try:
+            self.prog.terminate()
+            await self.prog.wait()
+        except ProcessLookupError:
+            pass
 
 
 def check_win(board, no):
@@ -378,7 +379,7 @@ async def main(raw_args=None, ifunc=None, ofunc=None, discord=False):
     if args.silent:
         sys.stdout = origin_stdout
         Player.ofunc = ofunc
-    if discord:
+    else:
         await Player.print(board)
     await Player.print(render_end(winner, errors, args.silent))
 
