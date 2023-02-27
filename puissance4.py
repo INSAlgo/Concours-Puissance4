@@ -15,6 +15,7 @@ import pathlib
 WIDTH = 7
 HEIGHT = 6
 TIMEOUT_LENGTH = 0.1
+DISCORD_TIMEOUT = 60
 EMOJI_NUMBERS = ('0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣')
 EMOJI_COLORS = ('🟠', '🔴', '🟡', '🟢', '🔵', '🟣', '🟤',  '⚪️', '⚫️')
 
@@ -97,7 +98,11 @@ class Human(Player):
     async def ask_move(self, board, debug):
         await super().ask_move(board, debug)
         await Player.print(f"Column for {self} : ", end="")
-        user_input = await self.input()
+        try:
+            user_input = await self.input()
+        except asyncio.TimeoutError:
+            await Player.print(f"User did not respond in time (over {DISCORD_TIMEOUT}s)")
+            return None, "timeout"
         return await Human.sanithize(board, user_input)
 
     async def tell_move(self, move: int):
@@ -105,7 +110,7 @@ class Human(Player):
 
     async def input(self):
         if self.ifunc:
-            user_input = await self.ifunc(self.name)
+            user_input = await asyncio.wait_for(self.ifunc(self.name), timeout=DISCORD_TIMEOUT)
             await Player.print(user_input, send_discord=False)
             return user_input
         else:
@@ -157,7 +162,6 @@ class AI(Player):
 
     async def lose_game(self):
         await super().lose_game()
-        self.prog.terminate()
 
     async def ask_move(self, board, debug) -> tuple[tuple[int, int] | None, str | None]:
         await super().ask_move(board, debug)
@@ -191,7 +195,7 @@ class AI(Player):
                     break
             await Player.print(f"Column for {self} : {progInput}")
         except asyncio.TimeoutError:
-            await Player.print(f"{self} did not respond in time (over {TIMEOUT_LENGTH}s)")
+            await Player.print(f"AI did not respond in time (over {TIMEOUT_LENGTH}s)")
             return None, "timeout"
         return await Human.sanithize(board, progInput)
 
@@ -201,18 +205,10 @@ class AI(Player):
             await self.prog.stdin.drain()
 
     async def stop_game(self):
-        self.prog.terminate()
-        
-        # if system() == "Windows":
-        #     func = self.prog.kill
-        #     args = [CTRL_C_EVENT]
-        # args = []
-        # 
-        # await asyncio.gather(asyncio.get_event_loop().run_in_executor(
-        #     None, 
-        #     func,
-        #     args
-        # ))
+        return asyncio.gather(asyncio.get_event_loop().run_in_executor(
+            None, 
+            self.prog.terminate
+        ))
 
 
 def check_win(board, no):
@@ -304,7 +300,7 @@ async def game(players: list[Human | AI], width, height, emoji, debug):
             user_input, error = None, None
             while not user_input:
                 user_input, error = await player.ask_move(board, debug)
-                if isinstance(player, AI) or error == "user interrupt":
+                if isinstance(player, AI) or error in ("user interrupt", "timeout"):
                     break
 
             # saving eventual error
@@ -384,7 +380,7 @@ async def main(raw_args=None, ifunc=None, ofunc=None, discord=False):
         if not ai_only:
             output = StringIO("Game cannot be silent since humans are playing")
             tmp = output.getvalue()
-            await Human.print(output)
+            await Player.print(output)
             raise Exception(tmp)
         if discord:
             Player.ofunc = None
