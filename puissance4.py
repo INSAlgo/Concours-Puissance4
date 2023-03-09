@@ -147,7 +147,7 @@ class AI(Player):
         if self.prog.stdin.transport._conn_lost:
             self.prog.stdin.close()
             self.prog.stdin = asyncio.subprocess.PIPE
-        self.prog.stdin.drain()
+        await self.prog.stdin.drain()
 
     async def start_game(self, width, height, nbPlayers):
         await super().start_game(width, height, nbPlayers)
