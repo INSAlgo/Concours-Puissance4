@@ -142,14 +142,25 @@ class AI(Player):
             self.rendered_name = f"AI {self.icon} ({self.name})"
         self.prog_path = prog_path
         self.command = AI.prepare_command(self.prog_path)
+    
+    async def drain(self):
+        if self.prog.stdin.transport._conn_lost:
+            self.prog.stdin.close()
+            self.prog.stdin = asyncio.subprocess.PIPE
+        await self.prog.stdin.drain()
 
     async def start_game(self, width, height, nbPlayers):
         await super().start_game(width, height, nbPlayers)
-        self.prog = await asyncio.create_subprocess_shell(AI.prepare_command(self.prog_path),
-            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        self.prog = await asyncio.create_subprocess_shell(
+            AI.prepare_command(self.prog_path),
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
         if self.prog.stdin:
             self.prog.stdin.write(f"{width} {height} {nbPlayers} {self.no}\n".encode())
-            await self.prog.stdin.drain()
+            await self.drain()
 
     async def lose_game(self):
         await super().lose_game()
@@ -188,7 +199,7 @@ class AI(Player):
     async def tell_move(self, move: int):
         if self.prog.stdin:
             self.prog.stdin.write(f"{move}\n".encode())
-            await self.prog.stdin.drain()
+            await self.drain()
 
     async def stop_game(self):
         try:
